@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import jwt
 from fastapi import Depends, HTTPException, Request, Response
+
 from smartvintaawesomekit.auth.config import AuthConfig
 from smartvintaawesomekit.auth.jwt import JWTManager
 

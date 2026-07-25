@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.2.0 — 2026-07-25
+
+Full authentication module — JWT, OAuth2, RBAC, password hashing, session management, and middleware.
+
+### Features
+- **Authentication module** (`smartvintaawesomekit.auth`) — complete auth system with 7 sub-modules:
+  - **JWT** — Access/refresh token creation, decoding, validation, and refresh pairing (PyJWT, HS256)
+  - **OAuth2** — Authorization code flow for Google and GitHub providers with CSRF state protection
+  - **RBAC** — Role-based access control with hierarchical roles and decorator-based route protection
+  - **Password hashing** — Algorithm-agnostic hasher (bcrypt/argon2) via passlib with timing-safe verification
+  - **Session management** — Server-side refresh token tracking with revocation support (SQLAlchemy)
+  - **Middleware** — FastAPI middleware that validates JWT and injects user into `request.state`
+  - **Config** — Pydantic-settings `AuthConfig` loaded from `AUTH_*` environment variables
+- **Auth ORM models** — `User`, `Role`, `UserRole`, `SessionRecord` with indexed columns and FK relationships
+- **Auth dependencies** — `create_auth_dependencies()` factory for pre-configured FastAPI DI wiring
+
+### Dependencies
+- Added `PyJWT>=2.8.0`, `passlib[bcrypt]>=1.7.4`, `argon2-cffi>=23.1.0`
+
+### Tests
+- 176 auth tests across 9 test classes (153 interface + 23 behavioral)
+- 281 total tests (105 existing + 176 auth), zero regressions
+- Ruff clean on `src/`
+
+### Security
+- JWT refresh tokens properly validate (reject expired/tampered tokens)
+- `decode_token` propagates `JWTError` instead of swallowing exceptions
+- OAuth2 HTTP requests use 10-second timeout
+- RBACManager uses module-level singleton (no per-request instantiation)
+- Middleware logs specific JWT error types instead of silent catch-all
+- No secrets in logs or error messages
+
 ## v0.1.0 — 2026-07-22
 
 Initial MVP release of smartvintaawesomekit — a Smart Python developer toolkit.
