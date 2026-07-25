@@ -29,13 +29,27 @@ import pytest
 # ──────────────────────────────────────────────────────────────────
 from smartvintaawesomekit.auth.config import AuthConfig
 from smartvintaawesomekit.auth.jwt import JWTManager, TokenPair
-from smartvintaawesomekit.auth.password import PasswordHasher
+from smartvintaawesomekit.auth.middleware import (
+    AuthMiddleware,
+    create_auth_dependencies,
+    get_current_active_user,
+    get_current_user,
+)
+from smartvintaawesomekit.auth.models import (
+    Role as RoleModel,
+)
+from smartvintaawesomekit.auth.models import (
+    SessionRecord,
+    User,
+    UserRole,
+)
 from smartvintaawesomekit.auth.oauth2 import (
     GitHubOAuth2,
     GoogleOAuth2,
     OAuth2Provider,
     get_provider,
 )
+from smartvintaawesomekit.auth.password import PasswordHasher
 from smartvintaawesomekit.auth.rbac import (
     RBACManager,
     Role,
@@ -43,19 +57,6 @@ from smartvintaawesomekit.auth.rbac import (
     require_role,
 )
 from smartvintaawesomekit.auth.session import SessionManager, SessionStatus
-from smartvintaawesomekit.auth.models import (
-    Role as RoleModel,
-    SessionRecord,
-    User,
-    UserRole,
-)
-from smartvintaawesomekit.auth.middleware import (
-    AuthMiddleware,
-    create_auth_dependencies,
-    get_current_active_user,
-    get_current_user,
-)
-
 
 # ──────────────────────────────────────────────────────────────────
 # 1. Config tests
@@ -767,7 +768,7 @@ class TestSessionBehavioral:
 
     def test_sessionmanager_init_not_implemented(self) -> None:
         """SessionManager.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
-        from unittest.mock import AsyncMock, MagicMock
+        from unittest.mock import AsyncMock
         db = AsyncMock()
         config = AuthConfig(jwt_secret_key="test")
         SessionManager(db=db, config=config)
@@ -943,7 +944,7 @@ class TestMiddlewareInterface:
 
     def test_authmiddleware_has_call(self) -> None:
         """AuthMiddleware should have __call__ method."""
-        assert hasattr(AuthMiddleware, "__call__")
+        assert callable(AuthMiddleware)
 
     def test_create_auth_dependencies_params(self) -> None:
         """create_auth_dependencies should accept config."""
@@ -971,7 +972,6 @@ class TestMiddlewareBehavioral:
 
     def test_authmiddleware_init_not_implemented(self) -> None:
         """AuthMiddleware.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
-        config = AuthConfig(jwt_secret_key="test")
         jwt_mgr = JWTManager.__new__(JWTManager)
         AuthMiddleware(jwt_manager=jwt_mgr, skip_paths=["/health"])
 
