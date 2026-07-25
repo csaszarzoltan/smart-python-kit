@@ -37,9 +37,16 @@ class JWTManager:
         self._refresh_expire_days: int = config.jwt_refresh_token_expire_days
 
     def _ensure_defaults(self) -> None:
-        """Lazily set defaults when __init__ was skipped (e.g. __new__)."""
+        """Lazily set defaults when __init__ was skipped (e.g. __new__).
+
+        Raises:
+            RuntimeError: If __init__ was not called (attributes not set).
+        """
         if not hasattr(self, "_secret_key"):
-            self._secret_key = "default-secret"
+            raise RuntimeError(
+                "JWTManager.__init__ must be called before using token operations. "
+                "Do not create JWTManager via __new__ without calling __init__."
+            )
         if not hasattr(self, "_algorithm"):
             self._algorithm = "HS256"
         if not hasattr(self, "_access_expire_minutes"):
@@ -139,20 +146,20 @@ class JWTManager:
 
         Returns:
             Decoded token payload as dictionary.
+
+        Raises:
+            jwt.JWTError: If the token is invalid, expired, or tampered with.
         """
         self._ensure_defaults()
         options: dict[str, Any] = {}
         if not verify_exp:
             options["verify_exp"] = False
-        try:
-            return jwt.decode(
-                token,
-                self._secret_key,
-                algorithms=[self._algorithm],
-                options=options,
-            )
-        except jwt.PyJWTError:
-            return {}
+        return jwt.decode(
+            token,
+            self._secret_key,
+            algorithms=[self._algorithm],
+            options=options,
+        )
 
     def refresh_access_token(
         self,
@@ -167,13 +174,13 @@ class JWTManager:
             New TokenPair with fresh access and refresh tokens.
 
         Raises:
-            jwt.JWTError: If the refresh token is invalid or expired.
+            jwt.JWTError: If the refresh token is invalid, expired, or tampered with.
+            ValueError: If the token is not a refresh token.
         """
         self._ensure_defaults()
         payload = self.decode_token(refresh_token)
-        if not payload or payload.get("type") != "refresh":
-            subject = payload.get("sub", "unknown")
-            return self.create_token_pair(subject)
+        if payload.get("type") != "refresh":
+            raise ValueError("Token is not a refresh token")
         subject = payload["sub"]
         # Preserve original claims (exclude standard JWT fields)
         claims = {

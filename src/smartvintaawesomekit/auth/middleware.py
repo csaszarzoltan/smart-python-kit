@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
+import jwt
 from fastapi import Depends, HTTPException, Request, Response
-
 from smartvintaawesomekit.auth.config import AuthConfig
 from smartvintaawesomekit.auth.jwt import JWTManager
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+logger = logging.getLogger(__name__)
 
 
 class AuthMiddleware:
@@ -66,7 +69,14 @@ class AuthMiddleware:
         try:
             payload = self._jwt_manager.decode_token(token)
             request.state.user = payload
+        except jwt.ExpiredSignatureError:
+            logger.debug("JWT token expired for %s", request.url.path)
+            request.state.user = None
+        except jwt.InvalidTokenError as e:
+            logger.debug("Invalid JWT token for %s: %s", request.url.path, e)
+            request.state.user = None
         except Exception:
+            logger.exception("Unexpected error validating JWT for %s", request.url.path)
             request.state.user = None
 
         return await call_next(request)

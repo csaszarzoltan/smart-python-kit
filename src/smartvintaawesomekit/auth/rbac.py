@@ -134,6 +134,10 @@ def require_role(*roles: str) -> Callable[..., Any]:
     return decorator
 
 
+# Module-level singleton to avoid recreating RBACManager per request
+_default_rbac_manager = RBACManager()
+
+
 def require_permission(permission: str) -> Callable[..., Any]:
     """Decorator for fine-grained permission checks. Raises HTTP 403 Forbidden if not granted.
 
@@ -155,8 +159,7 @@ def require_permission(permission: str) -> Callable[..., Any]:
             if request is None or not hasattr(request.state, "user"):
                 raise HTTPException(status_code=403, detail="Not authenticated")
             user_roles = request.state.user.get("roles", [])
-            mgr = RBACManager()
-            if not mgr.check_permission(user_roles, permission):
+            if not _default_rbac_manager.check_permission(user_roles, permission):
                 raise HTTPException(
                     status_code=403,
                     detail=f"Required permission: {permission}",

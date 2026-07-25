@@ -301,17 +301,30 @@ class TestJWTBehavioral:
         manager = JWTManager(config)
         manager.create_token_pair(subject="user123")
 
-    def test_decode_token_not_implemented(self) -> None:
-        """decode_token should raise NotImplementedError — NOT IMPLEMENTED."""
+    def test_decode_token_invalid_token_raises(self) -> None:
+        """decode_token should raise JWTError for invalid tokens."""
+        import jwt as pyjwt
         config = AuthConfig(jwt_secret_key="test-secret")
         manager = JWTManager(config)
-        manager.decode_token(token="fake.jwt.token")
+        with pytest.raises(pyjwt.PyJWTError):
+            manager.decode_token(token="fake.jwt.token")
 
-    def test_refresh_access_token_not_implemented(self) -> None:
-        """refresh_access_token should raise NotImplementedError — NOT IMPLEMENTED."""
+    def test_refresh_access_token_invalid_token_raises(self) -> None:
+        """refresh_access_token should raise JWTError for invalid tokens."""
+        import jwt as pyjwt
         config = AuthConfig(jwt_secret_key="test-secret")
         manager = JWTManager(config)
-        manager.refresh_access_token(refresh_token="fake.refresh.token")
+        with pytest.raises(pyjwt.PyJWTError):
+            manager.refresh_access_token(refresh_token="fake.refresh.token")
+
+    def test_refresh_access_token_non_refresh_token_raises(self) -> None:
+        """refresh_access_token should raise ValueError for non-refresh tokens."""
+        config = AuthConfig(jwt_secret_key="test-secret")
+        manager = JWTManager(config)
+        # Create an access token (not a refresh token)
+        access_token = manager.create_access_token(subject="user123")
+        with pytest.raises(ValueError, match="Token is not a refresh token"):
+            manager.refresh_access_token(refresh_token=access_token)
 
 
 # ──────────────────────────────────────────────────────────────────

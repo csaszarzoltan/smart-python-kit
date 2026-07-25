@@ -10,6 +10,9 @@ import httpx
 
 from smartvintaawesomekit.auth.config import AuthConfig  # noqa: TC001 — used at runtime
 
+# Default timeout for OAuth2 HTTP requests (seconds)
+_OAUTH2_TIMEOUT: float = 10.0
+
 
 class OAuth2Provider(ABC):
     """Abstract base for OAuth2 providers."""
@@ -77,8 +80,12 @@ class GoogleOAuth2(OAuth2Provider):
 
         Returns:
             Token data dictionary.
+
+        Raises:
+            httpx.TimeoutException: If the request times out.
+            httpx.HTTPStatusError: If the provider returns an error.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=_OAUTH2_TIMEOUT) as client:
             response = await client.post(
                 self._TOKEN_URL,
                 data={
@@ -100,8 +107,12 @@ class GoogleOAuth2(OAuth2Provider):
 
         Returns:
             User profile dictionary.
+
+        Raises:
+            httpx.TimeoutException: If the request times out.
+            httpx.HTTPStatusError: If the provider returns an error.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=_OAUTH2_TIMEOUT) as client:
             response = await client.get(
                 self._USERINFO_URL,
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -154,8 +165,12 @@ class GitHubOAuth2(OAuth2Provider):
 
         Returns:
             Token data dictionary.
+
+        Raises:
+            httpx.TimeoutException: If the request times out.
+            httpx.HTTPStatusError: If the provider returns an error.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=_OAUTH2_TIMEOUT) as client:
             response = await client.post(
                 self._TOKEN_URL,
                 json={
@@ -177,8 +192,12 @@ class GitHubOAuth2(OAuth2Provider):
 
         Returns:
             User profile dictionary.
+
+        Raises:
+            httpx.TimeoutException: If the request times out.
+            httpx.HTTPStatusError: If the provider returns an error.
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=_OAUTH2_TIMEOUT) as client:
             response = await client.get(
                 self._USERINFO_URL,
                 headers={
