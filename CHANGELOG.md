@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.3.0 — Caching Module (2026-07-25)
+
+### Added
+- Cache module with 7 sub-modules:
+  - `cache/base.py` — Abstract `CacheBackend` interface (get, set, delete, exists, clear, get_stats)
+  - `cache/config.py` — `CacheConfig` with `CACHE_*` environment variable support
+  - `cache/memory.py` — Thread-safe in-memory cache with TTL and LRU eviction
+  - `cache/redis.py` — Async Redis backend via `redis.asyncio` (optional `[redis]` extra)
+  - `cache/decorator.py` — `@cached()` decorator for sync/async functions and FastAPI routes
+  - `cache/invalidation.py` — Tag-based and prefix-based cache invalidation
+  - `cache/stats.py` — `CacheStats` dataclass with hit rate tracking
+- Optional `[redis]` dependency for Redis backend
+- 131 tests covering all cache sub-modules
+- Documentation in `docs/caching.md` and `examples/caching_example.py`
+
 ## v0.2.0 — 2026-07-25
 
 Full authentication module — JWT, OAuth2, RBAC, password hashing, session management, and middleware.

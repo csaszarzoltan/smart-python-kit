@@ -38,3 +38,6 @@ htmlcov/
 # Project specific
 *.db
 *.sqlite3
+
+# Analysis scratch
+analysis/
