@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## v0.4.0 — Testing Module (2026-07-27)
+
+### Added
+- New `smartvintaawesomekit.testing` package with:
+  - **Factories** — ModelFactory base class with UserFactory, RoleFactory, SessionRecordFactory, UserRoleFactory (build/create patterns, field overrides)
+  - **Database Fixtures** — In-memory SQLite async fixtures (db_engine, db_session) for isolated test databases
+  - **Client Fixtures** — async_client FastAPI TestClient with auth header helpers
+  - **Mock Registry** — Pre-built mocks for auth (MockJWTManager, MockPasswordHasher, MockRBACManager, MockAuthConfig), cache (MockCacheBackend), HTTP (MockAsyncClient), and database (MockAsyncSession, MockCRUD)
+  - **Pytest Plugin** — Auto-registers all fixtures via pytest11 entry point, no manual conftest.py required
+  - **Helpers** — assert_response, assert_paginated, auth_header utilities
+- Optional [test] extra already covers required deps (pytest, pytest-asyncio, httpx)
+
+### Tests
+- 393+ tests covering the testing module itself (factories, mocks, fixtures, plugin)
+- >= 85% code coverage on smartvintaawesomekit.testing
+- Zero regressions on existing 400+ tests
+
+### Dependencies
+- No new runtime dependencies added
+- All mocking uses stdlib unittest.mock
+
 ## v0.3.0 — Caching Module (2026-07-25)
 
 ### Added
