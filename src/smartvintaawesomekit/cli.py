@@ -1,6 +1,10 @@
 """User-centered CLI for safe FastAPI project generation and diagnostics."""
 from __future__ import annotations
 
+import base64
+import difflib
+import hashlib
+import importlib.util
 import json
 import re
 import shutil
@@ -42,7 +46,7 @@ def _project_files(plan: ProjectPlan) -> dict[str, str]:
     files = {
         ".gitignore": ".env\n.venv/\n__pycache__/\n*.py[cod]\n.pytest_cache/\n.coverage\nhtmlcov/\n*.db\n",
         ".env.example": f"APP_NAME={plan.name}\nENVIRONMENT=development\nDATABASE_URL={db_url}\nLOG_LEVEL=INFO\n",
-        ".smartvinta.json": json.dumps({"generator": "smartvintaawesomekit", "generator_version": __version__, "preset": plan.preset, "database": plan.database}, indent=2) + "\n",
+        ".smartvinta.json": "",
         "app/__init__.py": "",
         "app/config.py": 'from pydantic_settings import BaseSettings, SettingsConfigDict\n\nclass Settings(BaseSettings):\n    app_name: str = "app"\n    environment: str = "development"\n    database_url: str = "sqlite+aiosqlite:///./dev.db"\n    log_level: str = "INFO"\n    model_config = SettingsConfigDict(env_file=".env", extra="ignore")\n\nsettings = Settings()\n',
         "app/database.py": 'from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine\nfrom app.config import settings\n\nengine = create_async_engine(settings.database_url, pool_pre_ping=True)\nsession_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)\n\nasync def get_db():\n    async with session_factory() as session:\n        yield session\n',
@@ -65,6 +69,23 @@ def _project_files(plan: ProjectPlan) -> dict[str, str]:
         files["app/routes/items.py"] = 'from fastapi import APIRouter, HTTPException\nfrom pydantic import BaseModel, Field\n\nrouter = APIRouter(prefix="/items", tags=["items"])\n_items: dict[int, dict] = {}\n\nclass ItemCreate(BaseModel):\n    name: str = Field(min_length=1, max_length=100)\n\n@router.post("", status_code=201)\nasync def create_item(item: ItemCreate) -> dict:\n    item_id = len(_items) + 1\n    value = {"id": item_id, "name": item.name}\n    _items[item_id] = value\n    return value\n\n@router.get("/{item_id}")\nasync def get_item(item_id: int) -> dict:\n    if item_id not in _items:\n        raise HTTPException(status_code=404, detail="Item not found")\n    return _items[item_id]\n'
         files["app/main.py"] = files["app/main.py"].replace("from app.config import settings", "from app.config import settings\nfrom app.routes.items import router as items_router").replace("\n@app.get(\"/\"", "\napp.include_router(items_router)\n\n@app.get(\"/\"")
         files["tests/test_items.py"] = 'from fastapi.testclient import TestClient\nfrom app.main import app\n\nclient = TestClient(app)\n\ndef test_item_journey():\n    created = client.post("/items", json={"name": "First"})\n    assert created.status_code == 201\n    item_id = created.json()["id"]\n    assert client.get(f"/items/{item_id}").json()["name"] == "First"\n\ndef test_item_validation_is_visible():\n    assert client.post("/items", json={"name": ""}).status_code == 422\n'
+    managed = {
+        name: {
+            "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "baseline": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+        }
+        for name, content in files.items()
+        if name != ".smartvinta.json"
+    }
+    files[".smartvinta.json"] = json.dumps({
+        "schema_version": 1,
+        "generator": "smartvintaawesomekit",
+        "generator_version": __version__,
+        "preset": plan.preset,
+        "database": plan.database,
+        "managed_files": managed,
+        "resources": {},
+    }, indent=2) + "\n"
     return files
 
 
@@ -131,8 +152,17 @@ def doctor(project: Annotated[Path, typer.Option("--project")] = Path("."), json
         {"name": "migrations", "ok": (project / "alembic.ini").is_file(), "detail": "alembic.ini"},
     ]
     if environment == "production":
-        checks.append({"name": "production-env", "ok": (project / ".env").is_file(), "detail": ".env required for production validation"})
-    ok = all(check["ok"] for check in checks)
+        env_path = project / ".env"
+        checks.append({"name": "production-env", "ok": env_path.is_file(), "detail": ".env required for production validation"})
+        env_text = env_path.read_text(encoding="utf-8") if env_path.is_file() else ""
+        secret = next((line.split("=", 1)[1].strip() for line in env_text.splitlines() if line.startswith("AUTH_JWT_SECRET_KEY=")), "")
+        secret_ok = len(secret) >= 32 and secret.lower() not in {"change-me", "changeme", "secret", "your-secret-key"}
+        checks.append({"name": "jwt-secret", "ok": secret_ok, "detail": "AUTH_JWT_SECRET_KEY must be a non-placeholder value of at least 32 characters"})
+    checks.extend([
+        {"name": "optional-redis", "ok": importlib.util.find_spec("redis") is not None, "detail": "installed" if importlib.util.find_spec("redis") else "install smartvintaawesomekit[redis] when Redis is selected", "blocking": False},
+        {"name": "optional-alembic", "ok": importlib.util.find_spec("alembic") is not None, "detail": "installed" if importlib.util.find_spec("alembic") else "install alembic to run migrations", "blocking": False},
+    ])
+    ok = all(check["ok"] for check in checks if check.get("blocking", True))
     if json_output:
         typer.echo(json.dumps({"ok": ok, "project": str(project), "checks": checks}, indent=2))
     else:
@@ -143,6 +173,106 @@ def doctor(project: Annotated[Path, typer.Option("--project")] = Path("."), json
 
 from smartvintaawesomekit.resource_cli import add_resource
 app.command("add-resource")(add_resource)
+
+@app.command()
+def inspect(
+    project: Annotated[Path, typer.Option("--project")] = Path("."),
+    check: Annotated[bool, typer.Option("--check")] = False,
+    diff: Annotated[bool, typer.Option("--diff", help="Include safe unified diffs")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Report scaffold provenance, drift, and optional safe text diffs."""
+    project = project.resolve()
+    manifest_path = project / ".smartvinta.json"
+    if not manifest_path.is_file():
+        raise typer.BadParameter("No .smartvinta.json manifest found.")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema_version", 0) not in {0, 1}:
+        raise typer.BadParameter("Unsupported manifest schema version.")
+    managed = manifest.get("managed_files", {})
+    missing, modified, diffs = [], [], {}
+    for relative, metadata in managed.items():
+        path = project / relative
+        expected = metadata.get("sha256") if isinstance(metadata, dict) else metadata
+        if not path.is_file():
+            missing.append(relative)
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            modified.append(relative)
+            if diff and isinstance(metadata, dict) and metadata.get("baseline"):
+                try:
+                    baseline = base64.b64decode(metadata["baseline"]).decode("utf-8").splitlines()
+                    current = path.read_text(encoding="utf-8").splitlines()
+                    diffs[relative] = "\n".join(difflib.unified_diff(baseline, current, fromfile=f"generated/{relative}", tofile=f"current/{relative}", lineterm=""))
+                except (UnicodeDecodeError, ValueError):
+                    diffs[relative] = "Diff unavailable for non-text content."
+    payload = {
+        "schema_version": manifest.get("schema_version", 0),
+        "status": "clean" if not missing and not modified else "drifted",
+        "generator_version": manifest.get("generator_version"),
+        "preset": manifest.get("preset"),
+        "database": manifest.get("database"),
+        "resources": sorted(manifest.get("resources", {})),
+        "missing_files": sorted(missing),
+        "modified_files": sorted(modified),
+        "diffs": diffs,
+    }
+    if json_output:
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        typer.echo(f"Status: {payload['status']}")
+        typer.echo(f"Generator: {payload['generator_version']}; preset: {payload['preset']}; database: {payload['database']}")
+        for name in payload["missing_files"]:
+            typer.echo(f"MISSING {name} | restore or regenerate the file")
+        for name in payload["modified_files"]:
+            typer.echo(f"MODIFIED {name} | review diff or accept intentional changes")
+            if name in diffs:
+                typer.echo(diffs[name])
+    if check and payload["status"] != "clean":
+        raise typer.Exit(1)
+
+
+@app.command("manifest-accept")
+def manifest_accept(
+    paths: Annotated[list[str], typer.Argument(help="Managed relative paths to accept")],
+    project: Annotated[Path, typer.Option("--project")] = Path("."),
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Accept intentional changes to selected managed text files."""
+    project = project.resolve()
+    manifest_path = project / ".smartvinta.json"
+    if not manifest_path.is_file():
+        raise typer.BadParameter("No .smartvinta.json manifest found.")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    managed = manifest.get("managed_files", {})
+    sensitive = {".env", ".env.local"}
+    accepted = []
+    for relative in paths:
+        if relative in sensitive or relative.startswith(".env.") or "secret" in relative.lower():
+            raise typer.BadParameter(f"Sensitive file '{relative}' cannot be managed or accepted.")
+        if relative not in managed:
+            raise typer.BadParameter(f"'{relative}' is not a generator-managed file.")
+        target = (project / relative).resolve()
+        if project not in target.parents or not target.is_file():
+            raise typer.BadParameter(f"Managed file '{relative}' does not exist safely inside the project.")
+        try:
+            content = target.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            raise typer.BadParameter(f"Binary file '{relative}' cannot be accepted.") from exc
+        accepted.append((relative, content))
+    payload = {"dry_run": dry_run, "accepted_files": [item[0] for item in accepted]}
+    if not dry_run:
+        backup = manifest_path.with_suffix(".json.bak")
+        backup.write_text(manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
+        for relative, content in accepted:
+            managed[relative] = {
+                "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                "baseline": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+            }
+        manifest["schema_version"] = 1
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    typer.echo(json.dumps(payload, indent=2) if json_output else ("Would accept: " if dry_run else "Accepted: ") + ", ".join(payload["accepted_files"]))
+
 
 @app.command()
 def version(json_output: Annotated[bool, typer.Option("--json")] = False) -> None:

@@ -1,3 +1,30 @@
+### v0.7.0 — Actionable drift lifecycle (2026-08-01)
+
+#### Added
+- Versioned manifest schema with managed text baselines
+- Safe `inspect --diff` output in human and JSON modes
+- Previewable `manifest-accept` with backups and sensitive-file protection
+- Optional Redis and Alembic capability diagnostics
+- v0.7 product, UX, release, and validation reports
+
+#### Changed
+- Resource generation records v1 managed-file metadata
+- README and package version updated
+
+### v0.6.0 — Drift visibility and stable API errors (2026-08-01)
+
+#### Added
+- Checksum-aware scaffold manifest and resource metadata
+- Read-only `inspect` command with JSON and CI check modes
+- Stable API error envelope with field validation details and request IDs
+- Production JWT secret validation in `doctor`
+- v0.6 release and validation reports
+
+#### Changed
+- Resource generation updates managed-file checksums
+- Exception handling preserves legacy mapping keys while registering typed FastAPI handlers
+- README and package version updated
+
 ### v0.5.0 — Workflow extension and production readiness (2026-08-01)
 
 #### Added

@@ -2,12 +2,12 @@
 
 SmartVintaAwesomeKit is a batteries-included Python toolkit for creating and extending FastAPI applications. It combines safe project scaffolding, validated configuration, async SQLAlchemy utilities, API helpers, authentication, caching, testing utilities, and deployment-ready project files.
 
-**Current version:** 0.5.0  
+**Current version:** 0.7.0  
 **Project status:** Alpha
 
 > The v0.5 release focuses on safer repeated developer workflows: previewable project generation, resource generation, migration scaffolding, request tracing, bounded pagination, and production-oriented diagnostics.
 
-## Highlights in v0.5
+## Highlights in v0.6
 
 - Preset-based project generation: `minimal`, `api`, and `saas`
 - Atomic file generation with overwrite protection
@@ -75,6 +75,71 @@ smartvintaawesomekit doctor   --project .   --environment production
 ```
 
 Use `--json` with generation, diagnostics, and resource workflows when integrating the CLI into scripts or CI.
+
+### Drift inspection and CI checks
+
+```bash
+# Human-readable provenance and drift report
+smartvintaawesomekit inspect --project .
+
+# Fail CI when generator-managed files are missing or modified
+smartvintaawesomekit inspect --project . --check --json
+```
+
+The scaffold manifest now stores SHA-256 hashes for generator-managed files and resource metadata. `inspect` is read-only and reports missing or modified managed files without overwriting developer changes.
+
+### Stable API error contract
+
+Registered FastAPI exception handlers now return a consistent envelope with a stable error code, user-facing message, field-level validation details, and request ID. Responses also include `X-Request-ID` for log correlation.
+
+```json
+{
+  "error": {
+    "code": "validation_error",
+    "message": "One or more fields are invalid",
+    "fields": [{"field": "body.name", "message": "Field required"}],
+    "request_id": "..."
+  }
+}
+```
+
+### Stronger production diagnostics
+
+Production `doctor` checks now detect absent or placeholder JWT secrets. `AUTH_JWT_SECRET_KEY` must contain a non-placeholder value of at least 32 characters. Secret values are never printed.
+
+## v0.7 lifecycle workflows
+
+### Explain managed-file drift
+
+```bash
+smartvintaawesomekit inspect --project . --diff
+smartvintaawesomekit inspect --project . --diff --json
+```
+
+New projects use manifest schema version 1. For each generator-managed text file, the manifest stores a SHA-256 checksum and a Base64-encoded generated baseline. `inspect --diff` compares that baseline with the current file and produces a unified diff without changing the project.
+
+### Accept an intentional managed-file change
+
+Preview acceptance first:
+
+```bash
+smartvintaawesomekit manifest-accept app/main.py \
+  --project . \
+  --dry-run \
+  --json
+```
+
+Apply the selected acceptance:
+
+```bash
+smartvintaawesomekit manifest-accept app/main.py --project .
+```
+
+Only explicitly selected, generator-managed UTF-8 text files can be accepted. Environment and secret-like paths are rejected. Before changing the manifest, the command writes `.smartvinta.json.bak`.
+
+### Optional capability diagnostics
+
+`doctor` now reports whether Redis and Alembic support are installed. Missing optional capabilities are shown with installation guidance but do not block unrelated core workflows. Production security checks remain blocking.
 
 ## Project presets
 
@@ -258,13 +323,22 @@ python -m py_compile src/smartvintaawesomekit/*.py
 
 Validation recorded for the packaged v0.5 handoff:
 
-- 22 targeted CLI and next-release tests passed,
+- 63 targeted API, CLI, and release tests passed,
 - 5 clean generated-project acceptance tests passed after adding a resource,
-- the full suite completed with 808 passing tests,
+- the full suite completed with 814 passing tests,
 - 11 existing environment or baseline failures remain documented,
 - the final ZIP passed archive integrity validation.
 
 See [v0.5 test results](TEST_RESULTS_V0.5.md) and the detailed output under `test-results/`.
+
+## v0.6 validation summary
+
+- 6 new TDD acceptance tests passed.
+- 63 targeted API, CLI, and release tests passed.
+- 5 clean generated-project acceptance tests passed.
+- Full regression result: 819 passed, 11 pre-existing environment/baseline failures, and 11 warnings.
+
+See [v0.6 test results](TEST_RESULTS_V0.6.md) and [v0.6 release report](docs/v0.6-release-report.md).
 
 ## Known limitations
 

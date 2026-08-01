@@ -1,89 +1,53 @@
-"""Smart API utilities — standardized response formats, pagination, and error handling.
-
-Provides generic API response wrappers, SQLAlchemy query pagination,
-and ready-to-register FastAPI exception handlers.
-"""
-
+"""Standard API responses, bounded pagination, and stable error contracts."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar
+from uuid import uuid4
 
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from sqlalchemy import Select  # noqa: TC002
-
-if TYPE_CHECKING:
-    from fastapi import FastAPI, Request
+from sqlalchemy import Select
 
 DataT = TypeVar("DataT")
 
 
 class APIResponse(BaseModel, Generic[DataT]):
-    """Standard API response wrapper.
-
-    Attributes:
-        data: The response payload.
-        message: A human-readable message.
-        status: HTTP status code.
-    """
-
     data: DataT
     message: str = "Success"
     status: int = 200
 
 
 class PaginatedResponse(BaseModel, Generic[DataT]):
-    """Standard paginated API response.
-
-    Attributes:
-        items: The list of items for the current page.
-        total: Total number of items across all pages.
-        page: Current page number (1-indexed).
-        size: Number of items per page.
-    """
-
     items: list[DataT]
     total: int
     page: int = 1
     size: int = 20
 
 
-def create_response(
-    data: Any,  # noqa: ANN401
-    message: str = "Success",
-    status: int = 200,
-) -> APIResponse[Any]:
-    """Create a standardized API response.
+class ErrorField(BaseModel):
+    field: str
+    message: str
 
-    Args:
-        data: The response payload.
-        message: A human-readable message.
-        status: HTTP status code.
 
-    Returns:
-        An APIResponse instance wrapping the data.
-    """
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+    fields: list[ErrorField] = []
+    request_id: str
+
+
+class ErrorResponse(BaseModel):
+    error: ErrorDetail
+
+
+def create_response(data: Any, message: str = "Success", status: int = 200) -> APIResponse[Any]:
     return APIResponse(data=data, message=message, status=status)
 
 
-def paginate(
-    query: Select,
-    page: int = 1,
-    size: int = 20,
-) -> tuple[Select, int, int]:
-    """Apply pagination to a SQLAlchemy select query.
-
-    Returns the query unchanged along with page/size metadata.
-    The caller applies offset/limit when executing.
-
-    Args:
-        query: A SQLAlchemy Select statement.
-        page: Page number (1-indexed).
-        size: Items per page.
-
-    Returns:
-        A tuple of (paginated_select, page, size) for use with offset/limit.
-    """
+def paginate(query: Select, page: int = 1, size: int = 20) -> tuple[Select, int, int]:
+    """Validate pagination and apply SQL limit/offset."""
     if page < 1:
         raise ValueError("page must be at least 1")
     if not 1 <= size <= 100:
@@ -91,59 +55,54 @@ def paginate(
     return query.limit(size).offset((page - 1) * size), page, size
 
 
-def _not_found_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Handle 404 Not Found exceptions."""
+def _request_id(request: Request) -> str:
+    return getattr(request.state, "request_id", None) or request.headers.get("X-Request-ID") or str(uuid4())
+
+
+def _error(status: int, code: str, message: str, request: Request, fields: list[dict[str, str]] | None = None) -> JSONResponse:
+    request_id = _request_id(request)
     return JSONResponse(
-        status_code=404,
-        content={"data": None, "message": "Resource not found", "status": 404},
+        status_code=status,
+        content={"error": {"code": code, "message": message, "fields": fields or [], "request_id": request_id}},
+        headers={"X-Request-ID": request_id},
     )
 
 
-def _validation_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Handle 422 Validation Error exceptions."""
-    return JSONResponse(
-        status_code=422,
-        content={"data": None, "message": "Validation error", "status": 422},
-    )
+async def _http_error_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    codes = {400: "bad_request", 401: "unauthorized", 403: "forbidden", 404: "not_found", 409: "conflict", 429: "rate_limited"}
+    message = exc.detail if isinstance(exc.detail, str) else "Request failed"
+    return _error(exc.status_code, codes.get(exc.status_code, "http_error"), message, request)
 
 
-def _server_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Handle 500 Internal Server Error exceptions."""
-    return JSONResponse(
-        status_code=500,
-        content={"data": None, "message": "Internal server error", "status": 500},
-    )
+async def _validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    fields = []
+    for issue in exc.errors():
+        path = ".".join(str(part) for part in issue.get("loc", ()))
+        fields.append({"field": path, "message": issue.get("msg", "Invalid value")})
+    return _error(422, "validation_error", "One or more fields are invalid", request, fields)
 
 
-exception_handlers: dict[int | type[Exception], Any] = {
-    404: _not_found_handler,
+async def _server_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    return _error(500, "internal_error", "Internal server error", request)
+
+
+exception_handlers: dict[Any, Any] = {
+    404: _http_error_handler,
     422: _validation_handler,
     500: _server_error_handler,
+    HTTPException: _http_error_handler,
+    RequestValidationError: _validation_handler,
+    Exception: _server_error_handler,
 }
-"""Exception handlers dict ready to be registered on a FastAPI app.
-
-Usage:
-    app = FastAPI()
-    for exc, handler in exception_handlers.items():
-        app.add_exception_handler(exc, handler)
-"""
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """Register all standard exception handlers on a FastAPI app.
-
-    Args:
-        app: A FastAPI application instance.
-    """
-    for status_code, handler in exception_handlers.items():
-        app.add_exception_handler(status_code, handler)
+    for exception_type, handler in exception_handlers.items():
+        if isinstance(exception_type, type):
+            app.add_exception_handler(exception_type, handler)
 
 
 __all__ = [
-    "APIResponse",
-    "PaginatedResponse",
-    "create_response",
-    "paginate",
-    "exception_handlers",
-    "register_exception_handlers",
+    "APIResponse", "ErrorDetail", "ErrorField", "ErrorResponse", "PaginatedResponse",
+    "create_response", "exception_handlers", "paginate", "register_exception_handlers",
 ]

@@ -71,4 +71,24 @@ def add_resource(
     line_end = content.find("\n", app_pos)
     content = content[:line_end + 1] + f"app.include_router({plural}_router)\n" + content[line_end + 1:]
     main.write_text(content)
+    manifest_path = project / ".smartvinta.json"
+    if manifest_path.is_file():
+        import hashlib
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        managed = manifest.setdefault("managed_files", {})
+        for path in (route_path, test_path, main):
+            relative = str(path.relative_to(project))
+            content = path.read_bytes()
+            import base64
+            managed[relative] = {
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "baseline": base64.b64encode(content).decode("ascii"),
+            }
+        manifest["schema_version"] = 1
+        manifest.setdefault("resources", {})[resource] = {
+            "fields": field or [],
+            "route": str(route_path.relative_to(project)),
+            "test": str(test_path.relative_to(project)),
+        }
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     typer.echo(json.dumps({**plan, "dry_run": False}, indent=2) if json_output else f"Added resource '{resource}' with {len(fields)} fields.")
