@@ -1,3 +1,35 @@
+### v0.5.0 — Workflow extension and production readiness (2026-08-01)
+
+#### Added
+- Safe `add-resource` generator with field validation, preview, JSON output, tests, and conflict protection
+- Alembic migration scaffolding in generated projects
+- Request-ID middleware scaffolding
+- Production-aware doctor checks
+- v0.5 requirements, implementation, and validation report
+
+#### Changed
+- Pagination now validates bounds and applies limit/offset
+- Generated projects include migration and traceability foundations
+- README and package version updated
+
+### v0.5.0-next — User-centered generator workflow (2026-08-01)
+
+#### Added
+- Preset-based generation (`minimal`, `api`, `saas`)
+- Dry-run and JSON output
+- Atomic generation and overwrite protection
+- Project-name, preset, and database validation
+- SQLite/PostgreSQL-specific output
+- `.env.example` and scaffold manifest
+- `doctor` diagnostics
+- Example API vertical slice with acceptance tests
+- Product/UX and implementation reports
+
+#### Changed
+- Generated projects now contain health/navigation guidance and current setup documentation
+- Demo application version derives from the package version
+- README documents the user-centered workflow
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

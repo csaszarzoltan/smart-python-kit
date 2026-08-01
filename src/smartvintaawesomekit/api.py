@@ -84,7 +84,11 @@ def paginate(
     Returns:
         A tuple of (paginated_select, page, size) for use with offset/limit.
     """
-    return query, page, size
+    if page < 1:
+        raise ValueError("page must be at least 1")
+    if not 1 <= size <= 100:
+        raise ValueError("size must be between 1 and 100")
+    return query.limit(size).offset((page - 1) * size), page, size
 
 
 def _not_found_handler(request: Request, exc: Exception) -> JSONResponse:

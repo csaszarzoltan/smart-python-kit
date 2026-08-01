@@ -61,10 +61,11 @@ class TestCliInterface:
 # ──────────────────────────────────────────────────────────────────
 
 class TestCliBehavioral:
-    """Verify cli module behaviors are stubbed — all should raise NotImplementedError."""
+    """Verify implemented CLI behavior."""
 
-    def test_init_not_implemented(self) -> None:
-        """Invoking init command should raise NotImplementedError — NOT IMPLEMENTED."""
+    def test_init_generates_project(self, tmp_path) -> None:
+        """Invoking init should generate a runnable project structure."""
         cmd = next(c for c in app.registered_commands
                    if c.callback and c.callback.__name__ == "init")
-        cmd.callback(project_name="test-project")
+        cmd.callback(project_name="test-project", directory=str(tmp_path))
+        assert (tmp_path / "test-project" / "app" / "main.py").is_file()

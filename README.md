@@ -1,40 +1,203 @@
 # SmartVintaAwesomeKit
 
-Smart Python developer toolkit — batteries-included project generator, configuration management, database utilities, API helpers, and a complete authentication module for modern Python applications.
+SmartVintaAwesomeKit is a batteries-included Python toolkit for creating and extending FastAPI applications. It combines safe project scaffolding, validated configuration, async SQLAlchemy utilities, API helpers, authentication, caching, testing utilities, and deployment-ready project files.
 
-## Quick Start
+**Current version:** 0.5.0  
+**Project status:** Alpha
+
+> The v0.5 release focuses on safer repeated developer workflows: previewable project generation, resource generation, migration scaffolding, request tracing, bounded pagination, and production-oriented diagnostics.
+
+## Highlights in v0.5
+
+- Preset-based project generation: `minimal`, `api`, and `saas`
+- Atomic file generation with overwrite protection
+- `--dry-run` previews and `--json` automation output
+- SQLite and PostgreSQL-specific generated configuration
+- Safe `add-resource` workflow with typed fields and generated tests
+- Alembic migration scaffolding in generated projects
+- `X-Request-ID` middleware scaffolding for request correlation
+- Pagination validation with SQL limit and offset application
+- Production-aware `doctor` diagnostics
+- Updated generated README, environment template, and scaffold manifest
+
+See the [v0.5 release report](docs/v0.5-release-report.md), [implementation report](docs/implementation-report.md), and [product and UX requirements](docs/product-ux-requirements-report.md) for the full analysis and rationale.
+
+## Installation
 
 ```bash
-# Install
 pip install smartvintaawesomekit
+```
 
-# Create a new project
-smartvintaawesomekit init my-project
-cd my-project
+For local development:
 
-# Run the generated app
+```bash
+git clone <repository-url>
+cd smartvintaawesomekit
+python -m venv .venv
+. .venv/bin/activate
+pip install -e ".[dev,test]"
+```
+
+## Quick start
+
+### 1. Preview generation
+
+```bash
+smartvintaawesomekit init my-api   --preset api   --database sqlite   --dry-run
+```
+
+The preview lists the files that would be created without modifying the file system.
+
+### 2. Generate the project
+
+```bash
+smartvintaawesomekit init my-api   --preset api   --database sqlite
+
+cd my-api
+cp .env.example .env
+pip install -e ".[dev]"
+pytest
 uvicorn app.main:app --reload
 ```
 
-## Features
+Open <http://127.0.0.1:8000/docs> after starting the server.
 
-- **Smart Configuration** — pydantic-settings with sensible defaults
-- **Smart Database** — Async SQLAlchemy session management + CRUD helpers
-- **Smart API** — Standardized response formats, pagination, error handling
-- **Smart CLI** — Project generator that scaffolds FastAPI apps in seconds
-- **Authentication** — JWT tokens, OAuth2 (Google/GitHub), RBAC, password hashing, session management
-- **Testing Helpers** (P1) — Fixtures and utilities for testing FastAPI apps
-- **Deployment Templates** (P1) — Railway-ready Dockerfile and configuration
+### 3. Validate the project
+
+```bash
+smartvintaawesomekit doctor --project .
+```
+
+For production-oriented checks:
+
+```bash
+smartvintaawesomekit doctor   --project .   --environment production
+```
+
+Use `--json` with generation, diagnostics, and resource workflows when integrating the CLI into scripts or CI.
+
+## Project presets
+
+### `minimal`
+
+Generates the smallest supported FastAPI project with configuration, database setup, health endpoint, tests, environment template, Dockerfile, scaffold manifest, migration foundation, and request-ID middleware.
+
+### `api`
+
+Includes the minimal foundation plus a documented example API vertical slice and its acceptance tests. This is the recommended starting point for most services.
+
+### `saas`
+
+Uses the expanded project structure intended for applications that will adopt authentication, sessions, caching, and role-based permissions. The toolkit contains these modules, but fully generated database-backed authentication composition remains a planned follow-up.
+
+## Safe project generation
+
+```bash
+# SQLite
+smartvintaawesomekit init service-name   --preset api   --database sqlite
+
+# PostgreSQL
+smartvintaawesomekit init service-name   --preset api   --database postgresql
+```
+
+Generation behavior:
+
+- project names are validated before files are written,
+- output is staged before it is moved into the destination,
+- non-empty destinations are not overwritten silently,
+- `--force` must be supplied explicitly to replace a destination,
+- `.env.example` documents generated configuration,
+- `.smartvinta.json` records the generator version, preset, and database choice.
+
+## Add an API resource
+
+Preview the change first:
+
+```bash
+smartvintaawesomekit add-resource product   --project .   --field name:str:required   --field price:float:required   --field description:str:optional   --dry-run
+```
+
+Apply the resource:
+
+```bash
+smartvintaawesomekit add-resource product   --project .   --field name:str:required   --field price:float:required   --field description:str:optional
+```
+
+The command:
+
+- validates the resource and field specifications,
+- refuses to overwrite an existing resource,
+- creates a route module,
+- creates an API journey test,
+- registers the router in `app/main.py`,
+- supports JSON output for automation.
+
+Supported field types in v0.5 are `str`, `int`, `float`, and `bool`. Each field must be marked `required` or `optional`.
+
+> Resource generation currently creates an in-memory API vertical slice. SQLAlchemy model creation, persistence services, and automatic Alembic revisions are intentionally deferred to a later release.
+
+## Migrations
+
+Generated projects include an Alembic-compatible starting structure:
+
+```text
+alembic.ini
+migrations/
+├── env.py
+├── script.py.mako
+└── versions/
+```
+
+The v0.5 release establishes the migration layout and project contract. Before production use, connect the generated project’s model metadata and create application-specific revisions.
+
+## Request tracing
+
+Generated projects include request-ID middleware. The middleware:
+
+- preserves an incoming `X-Request-ID`,
+- generates a UUID when the header is absent,
+- stores the ID on `request.state`,
+- returns the ID in the response header.
+
+This provides a foundation for structured logging and support diagnostics.
+
+## Pagination
+
+The `paginate()` helper now validates inputs and applies SQL pagination:
+
+```python
+from sqlalchemy import select
+from smartvintaawesomekit.api import paginate
+
+query, page, size = paginate(select(MyModel), page=2, size=25)
+```
+
+Rules:
+
+- `page` must be at least 1,
+- `size` must be between 1 and 100,
+- offset is calculated as `(page - 1) * size`,
+- the returned SQLAlchemy query contains the corresponding limit and offset.
+
+## Main toolkit modules
+
+- **Configuration:** Pydantic Settings-based application, API, database, CORS, auth, and cache configuration
+- **Database:** async SQLAlchemy sessions and generic CRUD utilities
+- **API:** response models, error handlers, and pagination
+- **Authentication:** JWT, password hashing, OAuth2 providers, RBAC, session tracking, and FastAPI dependencies
+- **Caching:** in-memory and optional Redis backends, decorators, invalidation, and statistics
+- **Testing:** async client and database fixtures, factories, mocks, and response assertions
+- **CLI:** project generation, diagnostics, version output, and incremental resource generation
 
 ## Authentication
 
-Complete auth system with 7 sub-modules. Requires environment variables prefixed with `AUTH_`:
+Authentication uses environment variables prefixed with `AUTH_`:
 
 ```bash
-export AUTH_JWT_SECRET_KEY="your-secret-key-at-least-32-bytes-long"
+export AUTH_JWT_SECRET_KEY="replace-with-a-secret-of-at-least-32-bytes"
 ```
 
-### Setup
+Example setup:
 
 ```python
 from fastapi import FastAPI
@@ -44,44 +207,82 @@ app = FastAPI()
 config = AuthConfig()
 deps = create_auth_dependencies(config)
 
-# Add JWT middleware (validates Bearer tokens, sets request.state.user)
-app.add_middleware(deps["middleware"], skip_paths=["/health", "/docs"])
-
-# Protected route
+# Wire the returned dependencies according to the application integration pattern.
 @app.get("/me")
 async def me(user=deps["get_current_user"]):
     return {"user_id": user["sub"]}
 ```
 
-### Auth sub-modules
+Authentication capabilities include:
 
-| Module | Purpose |
-|--------|---------|
-| `auth.jwt` | Access/refresh token creation, decoding, validation |
-| `auth.password` | Password hashing (bcrypt/argon2) via passlib |
-| `auth.oauth2` | Google and GitHub OAuth2 authorization code flow |
-| `auth.rbac` | Role-based access control with `@require_role` / `@require_permission` decorators |
-| `auth.session` | Server-side refresh token tracking and revocation |
-| `auth.middleware` | FastAPI middleware for JWT validation + user injection |
-| `auth.config` | Pydantic-settings `AuthConfig` loaded from `AUTH_*` env vars |
+- access and refresh JWT creation and validation,
+- bcrypt or Argon2 password hashing,
+- Google and GitHub OAuth2 provider abstractions,
+- role and permission checks,
+- refresh-session persistence and revocation primitives,
+- FastAPI authentication dependencies and middleware.
 
-See [docs/auth.md](docs/auth.md) for the full usage guide.
+See [Authentication documentation](docs/auth.md) for details.
 
-## Development
+## Caching
+
+The cache package provides:
+
+- thread-safe in-memory caching,
+- optional Redis support,
+- TTL and LRU behavior,
+- sync and async caching decorators,
+- tag and prefix invalidation,
+- cache statistics.
+
+See [Caching documentation](docs/caching.md) for configuration and examples.
+
+## Development and validation
 
 ```bash
-# Install in editable mode with dev dependencies
-uv pip install -e ".[dev]"
+# Run the full test suite
+pytest -q
 
-# Run tests
-pytest tests/ -v
+# Run the v0.5 focused tests
+pytest -q   tests/test_cli.py   tests/test_cli_product_experience.py   tests/test_next_release.py
 
 # Lint
 ruff check .
 
 # Type check
 mypy src/
+
+# Compile-check modified modules
+python -m py_compile src/smartvintaawesomekit/*.py
 ```
+
+Validation recorded for the packaged v0.5 handoff:
+
+- 22 targeted CLI and next-release tests passed,
+- 5 clean generated-project acceptance tests passed after adding a resource,
+- the full suite completed with 808 passing tests,
+- 11 existing environment or baseline failures remain documented,
+- the final ZIP passed archive integrity validation.
+
+See [v0.5 test results](TEST_RESULTS_V0.5.md) and the detailed output under `test-results/`.
+
+## Known limitations
+
+- The project is still classified as Alpha.
+- The generated migration structure is a foundation, not a complete model-autogeneration workflow.
+- `add-resource` currently generates an in-memory vertical slice rather than database persistence.
+- Fully composed database-backed registration, login, token rotation, and logout are not yet generated by the `saas` preset.
+- Existing environment-sensitive test failures involving Passlib/bcrypt, Redis setup, and subprocess pytest plugin discovery are documented in the packaged test results.
+
+## Documentation
+
+- [Authentication guide](docs/auth.md)
+- [Caching guide](docs/caching.md)
+- [Product and UX requirements](docs/product-ux-requirements-report.md)
+- [Implementation report](docs/implementation-report.md)
+- [v0.5 release report](docs/v0.5-release-report.md)
+- [Test results](TEST_RESULTS_V0.5.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
