@@ -1,3 +1,16 @@
+### v0.8.0 — Upgrade planning and shared quality gates (2026-08-01)
+
+#### Added
+- Read-only `upgrade-plan` with conflict classification and CI check mode
+- Previewable `manifest-repair` with backups and schema protection
+- Generated GitHub Actions quality workflow
+- Generated local `scripts/check.py` quality gate
+- v0.8 release and validation reports
+
+#### Changed
+- New CI and quality files participate in managed-file tracking
+- README and package version updated
+
 ### v0.7.0 — Actionable drift lifecycle (2026-08-01)
 
 #### Added

@@ -2,7 +2,7 @@
 
 SmartVintaAwesomeKit is a batteries-included Python toolkit for creating and extending FastAPI applications. It combines safe project scaffolding, validated configuration, async SQLAlchemy utilities, API helpers, authentication, caching, testing utilities, and deployment-ready project files.
 
-**Current version:** 0.7.0  
+**Current version:** 0.8.0  
 **Project status:** Alpha
 
 > The v0.5 release focuses on safer repeated developer workflows: previewable project generation, resource generation, migration scaffolding, request tracing, bounded pagination, and production-oriented diagnostics.
@@ -140,6 +140,43 @@ Only explicitly selected, generator-managed UTF-8 text files can be accepted. En
 ### Optional capability diagnostics
 
 `doctor` now reports whether Redis and Alembic support are installed. Missing optional capabilities are shown with installation guidance but do not block unrelated core workflows. Production security checks remain blocking.
+
+## v0.8 upgrade and quality workflows
+
+### Plan an upgrade safely
+
+```bash
+smartvintaawesomekit upgrade-plan --project .
+smartvintaawesomekit upgrade-plan --project . --check --json
+```
+
+The command is read-only. It compares the project manifest version with the installed toolkit and classifies the project as `current`, `upgrade_available`, or `conflicts`. Modified or missing managed files are listed as manual actions rather than overwritten.
+
+### Repair supported manifest metadata
+
+```bash
+smartvintaawesomekit manifest-repair --project . --dry-run --json
+smartvintaawesomekit manifest-repair --project .
+```
+
+Repair is intentionally narrow. It restores supported metadata such as schema version 1 and invalid resource containers, creates `.smartvinta.json.bak`, and refuses unknown newer schemas or invalid JSON. It does not accept file drift.
+
+### Use the same quality gate locally and in CI
+
+Generated projects now include:
+
+```text
+.github/workflows/quality.yml
+scripts/check.py
+```
+
+Run the local gate with:
+
+```bash
+python scripts/check.py
+```
+
+The generated GitHub Actions workflow invokes the same script so local and CI behavior stay aligned.
 
 ## Project presets
 
@@ -323,7 +360,7 @@ python -m py_compile src/smartvintaawesomekit/*.py
 
 Validation recorded for the packaged v0.5 handoff:
 
-- 63 targeted API, CLI, and release tests passed,
+- 69 targeted API, CLI, and release tests passed,
 - 5 clean generated-project acceptance tests passed after adding a resource,
 - the full suite completed with 814 passing tests,
 - 11 existing environment or baseline failures remain documented,
@@ -334,9 +371,9 @@ See [v0.5 test results](TEST_RESULTS_V0.5.md) and the detailed output under `tes
 ## v0.6 validation summary
 
 - 6 new TDD acceptance tests passed.
-- 63 targeted API, CLI, and release tests passed.
+- 69 targeted API, CLI, and release tests passed.
 - 5 clean generated-project acceptance tests passed.
-- Full regression result: 819 passed, 11 pre-existing environment/baseline failures, and 11 warnings.
+- Full regression result: 825 passed, 11 pre-existing environment/baseline failures, and 11 warnings.
 
 See [v0.6 test results](TEST_RESULTS_V0.6.md) and [v0.6 release report](docs/v0.6-release-report.md).
 

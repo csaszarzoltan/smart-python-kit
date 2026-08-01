@@ -58,6 +58,11 @@ def _project_files(plan: ProjectPlan) -> dict[str, str]:
         "README.md": f'# {plan.name}\n\nGenerated with SmartVintaAwesomeKit {__version__}, preset **{plan.preset}**, database **{plan.database}**.\n\n## Quick start\n\n```bash\ncp .env.example .env\npython -m venv .venv\n. .venv/bin/activate\npip install -e ".[dev]"\npytest\nuvicorn app.main:app --reload\n```\n\nOpen <http://127.0.0.1:8000/docs>. Run `smartvintaawesomekit doctor --project .` before deployment. Never commit real secrets.\n',
     }
     files.update({
+        ".github/workflows/quality.yml": "name: quality\non: [push, pull_request]\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.11'\n      - run: pip install -e '.[dev]'\n      - run: python scripts/check.py\n",
+        "scripts/check.py": "\"\"\"Run the same quality checks locally and in CI.\"\"\"\nimport subprocess\nimport sys\n\nCOMMANDS = [[sys.executable, '-m', 'pytest', '-q'], ['ruff', 'check', '.']]\nfor command in COMMANDS:\n    result = subprocess.run(command, check=False)\n    if result.returncode:\n        raise SystemExit(result.returncode)\n",
+    })
+
+    files.update({
         "alembic.ini": "[alembic]\nscript_location = migrations\nprepend_sys_path = .\n",
         "migrations/env.py": "from alembic import context\nfrom app.database import engine\ntarget_metadata = None\n",
         "migrations/script.py.mako": "revision = ${repr(up_revision)}\ndown_revision = ${repr(down_revision)}\n\ndef upgrade():\n    pass\n\ndef downgrade():\n    pass\n",
@@ -272,6 +277,96 @@ def manifest_accept(
         manifest["schema_version"] = 1
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     typer.echo(json.dumps(payload, indent=2) if json_output else ("Would accept: " if dry_run else "Accepted: ") + ", ".join(payload["accepted_files"]))
+
+
+@app.command("upgrade-plan")
+def upgrade_plan(
+    project: Annotated[Path, typer.Option("--project")] = Path("."),
+    check: Annotated[bool, typer.Option("--check")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Create a read-only upgrade plan and classify local conflicts."""
+    project = project.resolve()
+    manifest_path = project / ".smartvinta.json"
+    if not manifest_path.is_file():
+        raise typer.BadParameter("No .smartvinta.json manifest found.")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    schema = manifest.get("schema_version", 0)
+    if schema not in {0, 1}:
+        raise typer.BadParameter("Unsupported manifest schema version.")
+    conflicts, missing = [], []
+    for relative, metadata in manifest.get("managed_files", {}).items():
+        target = project / relative
+        expected = metadata.get("sha256") if isinstance(metadata, dict) else metadata
+        if not target.is_file():
+            missing.append(relative)
+        elif hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+            conflicts.append(relative)
+    project_version = manifest.get("generator_version", "unknown")
+    current = project_version == __version__
+    if conflicts or missing:
+        status = "conflicts"
+    elif current:
+        status = "current"
+    else:
+        status = "upgrade_available"
+    payload = {
+        "status": status,
+        "project_version": project_version,
+        "available_version": __version__,
+        "safe_actions": [] if current or conflicts or missing else ["regenerate-managed-files"],
+        "conflicts": sorted(conflicts),
+        "missing_files": sorted(missing),
+        "manual_actions": ["review conflicts before any upgrade"] if conflicts or missing else [],
+    }
+    if json_output:
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        typer.echo(f"Upgrade status: {status}")
+        typer.echo(f"Project: {project_version}; available: {__version__}")
+        for path in payload["conflicts"]:
+            typer.echo(f"CONFLICT {path} | inspect --diff before upgrading")
+        for path in payload["missing_files"]:
+            typer.echo(f"MISSING {path} | restore or regenerate before upgrading")
+    if check and status == "conflicts":
+        raise typer.Exit(1)
+
+
+@app.command("manifest-repair")
+def manifest_repair(
+    project: Annotated[Path, typer.Option("--project")] = Path("."),
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Repair supported manifest metadata without accepting file drift."""
+    project = project.resolve()
+    manifest_path = project / ".smartvinta.json"
+    if not manifest_path.is_file():
+        raise typer.BadParameter("No .smartvinta.json manifest found.")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise typer.BadParameter("Manifest is not valid JSON and requires manual recovery.") from exc
+    schema = manifest.get("schema_version")
+    if schema not in {None, 0, 1}:
+        raise typer.BadParameter("Unsupported newer manifest schema; upgrade the toolkit before repair.")
+    changes = []
+    if schema != 1:
+        changes.append("set schema_version to 1")
+    if not isinstance(manifest.get("resources", {}), dict):
+        changes.append("reset invalid resources metadata")
+    payload = {"dry_run": dry_run, "changes": changes}
+    if not dry_run and changes:
+        backup = manifest_path.with_suffix(".json.bak")
+        backup.write_text(manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
+        manifest["schema_version"] = 1
+        if not isinstance(manifest.get("resources", {}), dict):
+            manifest["resources"] = {}
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    if json_output:
+        typer.echo(json.dumps(payload, indent=2))
+    else:
+        typer.echo("No repair needed." if not changes else ("Would repair: " if dry_run else "Repaired: ") + "; ".join(changes))
 
 
 @app.command()
