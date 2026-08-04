@@ -1,3 +1,52 @@
+# Changelog
+
+## v0.9.2 - 2026-08-04
+
+### Features
+- Added opt-in `doctor --connectivity` SQLite connectivity checks using a non-destructive `SELECT 1` probe.
+- Added opt-in `doctor --startup` ASGI import verification in an isolated, time-bounded subprocess.
+- Added stable readiness codes, durations, blocking status, and actionable remediation to JSON diagnostics.
+
+### Security
+- Readiness failures suppress internal exception text and never emit environment values or credentials.
+
+### Tests
+- Added TDD acceptance coverage for successful real I/O, unsupported URLs, import failures, redaction, and opt-in behavior.
+
+### Docs
+- Documented evidence-based readiness checks and updated the feature manifest.
+
+## v0.9.1 - 2026-08-04
+
+### Features
+- Added persisted refresh-token rotation that validates active sessions, revokes used JTIs, creates replacement sessions, and preserves client metadata.
+
+### Security
+- Reject reused, revoked, missing, expired, and access-token inputs during refresh rotation.
+
+### Tests
+- Added real async SQLite integration coverage for rotation, reuse detection, expiry, and token-type validation.
+
+### Docs
+- Documented the production session-rotation API and updated the machine-readable feature manifest.
+
+## v0.9.0 - 2026-08-04
+
+### Features
+- Added persistent vertical-slice generation for SQLAlchemy models, Pydantic schemas, async services, full CRUD routes, Alembic revisions, and integration tests.
+- Added safe `migrate` preview/execution for Alembic upgrade, downgrade, current, and history operations.
+- Consolidated the installed command surface under the canonical `smartvintaawesomekit.cli.core` application.
+
+### Fixes
+- Reject duplicate and reserved resource fields before any project files are written.
+- Track every generated persistent-resource file and updated router registration in the scaffold manifest.
+
+### Tests
+- Added TDD acceptance, validation, command-safety, and real SQLite CRUD integration coverage.
+
+### Docs
+- Updated README workflows and added `FEATURES-DONE.md` for machine-readable release discovery.
+
 ### v0.8.0 — Upgrade planning and shared quality gates (2026-08-01)
 
 #### Added

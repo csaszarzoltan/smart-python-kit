@@ -38,6 +38,7 @@ class RedisCache(CacheBackend):
             self._pool_size = 10
             self._hits = 0
             self._misses = 0
+            self._fallback: dict[str, Any] = {}
 
     @classmethod
     def from_url(cls, url: str, pool_size: int = 10) -> RedisCache:
@@ -68,7 +69,12 @@ class RedisCache(CacheBackend):
     async def get(self, key: str) -> Any | None:
         self._ensure_init()
         if self._redis is None:
-            return None
+            value = self._fallback.get(key)
+            if value is None:
+                self._misses += 1
+                return None
+            self._hits += 1
+            return value
         value = await self._redis.get(key)
         if value is None:
             self._misses += 1
@@ -81,6 +87,7 @@ class RedisCache(CacheBackend):
     ) -> None:
         self._ensure_init()
         if self._redis is None:
+            self._fallback[key] = value
             return
         serialized = _serialize(value)
         if ttl is not None:

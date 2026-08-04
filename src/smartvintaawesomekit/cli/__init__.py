@@ -1,35 +1,8 @@
-"""CLI Enhancement package — Rich-powered interactive prompts,
-progress bars, colored output, tables, and skeleton generator.
+"""Canonical SmartVintaAwesomeKit command-line interface.
+
+The package exports the lifecycle CLI from :mod:`smartvintaawesomekit.cli.core`.
+Visual helper modules remain importable for backward compatibility.
 """
+from smartvintaawesomekit.cli.core import ProjectPlan, app
 
-from __future__ import annotations
-
-from smartvintaawesomekit.cli.commands import app as app
-from smartvintaawesomekit.cli.theme import (
-    ColorMode,
-    ThemeConfig,
-    error,
-    get_console,
-    info,
-    panel,
-    print,  # noqa: A004
-    rule,
-    stylize,
-    success,
-    warning,
-)
-
-__all__ = [
-    "ColorMode",
-    "ThemeConfig",
-    "app",
-    "error",
-    "get_console",
-    "info",
-    "panel",
-    "print",
-    "rule",
-    "stylize",
-    "success",
-    "warning",
-]
+__all__ = ["ProjectPlan", "app"]

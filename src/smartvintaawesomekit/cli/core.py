@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+
 from smartvintaawesomekit import __version__
 from smartvintaawesomekit.readiness import check_application_import, check_database
 from smartvintaawesomekit.resource_cli import add_resource

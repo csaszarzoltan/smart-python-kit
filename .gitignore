@@ -41,3 +41,7 @@ htmlcov/
 
 # Analysis scratch
 analysis/
+
+node_modules/
+coverage.xml
+.mypy_cache/

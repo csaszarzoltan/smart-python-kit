@@ -14,6 +14,8 @@ from smartvintaawesomekit.auth.models import SessionRecord
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
+    from smartvintaawesomekit.auth.jwt import JWTManager, TokenPair
+
 
 class SessionStatus(StrEnum):
     """Session lifecycle states."""
@@ -165,6 +167,61 @@ class SessionManager:
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
+
+    async def rotate_refresh_token(
+        self,
+        refresh_token: str,
+        jwt_manager: JWTManager,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> TokenPair:
+        """Atomically rotate an active persisted refresh-token session.
+
+        The presented refresh JWT must have a matching active, unexpired session.
+        The old session is revoked before a new token pair and session are committed.
+
+        Args:
+            refresh_token: Signed refresh JWT presented by the client.
+            jwt_manager: JWT manager used to validate and issue tokens.
+            user_agent: Optional user-agent metadata for the replacement session.
+            ip_address: Optional client address for the replacement session.
+
+        Returns:
+            A newly issued access and refresh token pair.
+
+        Raises:
+            ValueError: If the token type, persisted session, or session state is invalid.
+        """
+        self._ensure_attrs()
+        payload = jwt_manager.decode_token(refresh_token)
+        if payload.get("type") != "refresh":
+            raise ValueError("Token is not a refresh token")
+        session = await self.get_session(str(payload.get("jti", "")))
+        if session is None:
+            raise ValueError("Refresh session not found")
+        if session.status != SessionStatus.ACTIVE.value:
+            raise ValueError("Refresh session is not active")
+        expires_at = session.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at <= datetime.now(UTC):
+            session.status = SessionStatus.EXPIRED.value
+            if self._db is not None:
+                await self._db.commit()
+            raise ValueError("Refresh session expired")
+
+        pair = jwt_manager.create_token_pair(str(payload["sub"]))
+        new_payload = jwt_manager.decode_token(pair.refresh_token)
+        session.status = SessionStatus.REVOKED.value
+        await self.create_session(
+            str(payload["sub"]),
+            str(new_payload["jti"]),
+            user_agent=user_agent or session.user_agent,
+            ip_address=ip_address or session.ip_address,
+        )
+        if self._db is not None:
+            await self._db.commit()
+        return pair
 
     async def cleanup_expired(self) -> int:
         """Remove expired sessions. Returns count removed.
