@@ -1,10 +1,10 @@
-"""Pre-development tests for Mock Cache classes.
+"""Behavioral and interface tests for Mock Cache classes.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify MockCacheBackend, MockCacheInvalidation exist
     - Verify method signatures and return types
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - MockCacheBackend stores/retrieves data in-memory dict
     - MockCacheBackend deletes entries
     - MockCacheInvalidation invalidates by tag/prefix
@@ -93,11 +93,11 @@ class TestMockCacheBackendInterface:
 
 
 class TestMockCacheBackendBehavioral:
-    """Verify MockCacheBackend behaviors — stubs raise NotImplementedError."""
+    """Verify MockCacheBackend behaviors."""
 
     def test_mockcachebackend_get_set_roundtrip(self) -> None:
         """MockCacheBackend should store and retrieve values."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MockCacheBackend()
         cache.set(key="test_key", value="test_value")
         result = cache.get(key="test_key")
@@ -105,14 +105,14 @@ class TestMockCacheBackendBehavioral:
 
     def test_mockcachebackend_get_nonexistent_returns_none(self) -> None:
         """MockCacheBackend.get() should return None for missing keys."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MockCacheBackend()
         result = cache.get(key="nonexistent")
         assert result is None
 
     def test_mockcachebackend_delete_removes_entry(self) -> None:
         """MockCacheBackend.delete() should remove entry and return True."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MockCacheBackend()
         cache.set(key="to_delete", value="data")
         deleted = cache.delete(key="to_delete")
@@ -121,7 +121,7 @@ class TestMockCacheBackendBehavioral:
 
     def test_mockcachebackend_clear_all_entries(self) -> None:
         """MockCacheBackend.clear() should remove all entries."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MockCacheBackend()
         cache.set(key="a", value=1)
         cache.set(key="b", value=2)
@@ -131,7 +131,7 @@ class TestMockCacheBackendBehavioral:
 
     def test_mockcachebackend_exists_returns_bool(self) -> None:
         """MockCacheBackend.exists() should return True/False."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MockCacheBackend()
         cache.set(key="exists_key", value="val")
         assert cache.exists(key="exists_key") is True
@@ -188,11 +188,11 @@ class TestMockCacheInvalidationInterface:
 
 
 class TestMockCacheInvalidationBehavioral:
-    """Verify MockCacheInvalidation behaviors — stubs raise NotImplementedError."""
+    """Verify MockCacheInvalidation behaviors."""
 
     def test_invalidate_tags_clears_matching(self) -> None:
         """MockCacheInvalidation.invalidate_tags() should clear entries with matching tags."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MockCacheBackend()
         invalidator = MockCacheInvalidation(cache=cache)
         cache.set(key="user:1", value="data")
@@ -201,7 +201,7 @@ class TestMockCacheInvalidationBehavioral:
 
     def test_invalidate_prefix_clears_matching(self) -> None:
         """MockCacheInvalidation.invalidate_prefix() should clear entries with matching prefix."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MockCacheBackend()
         invalidator = MockCacheInvalidation(cache=cache)
         cache.set(key="session:abc", value="data")

@@ -1,13 +1,13 @@
-"""Pre-development tests for the cli.theme module (Colored Output & Theme System).
+"""Behavioral and interface tests for the cli.theme module (Colored Output & Theme System).
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify ColorMode enum values
     - Verify ThemeConfig class exists, extends BaseSettings, has correct fields
     - Verify function signatures and type hints
     - Verify __all__ exports
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - ThemeConfig.to_rich_theme(), to_console()
     - get_console(), stylize(), print()
     - success(), error(), warning(), info()

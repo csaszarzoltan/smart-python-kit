@@ -1,11 +1,11 @@
-"""Pre-development tests for the cli.progress module (Progress Bars).
+"""Behavioral and interface tests for the cli.progress module (Progress Bars).
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify ProgressManager class exists with correct method signatures
     - Verify track() function exists
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - ProgressManager context manager protocol
     - add_task, advance, update, track
     - standalone track() function

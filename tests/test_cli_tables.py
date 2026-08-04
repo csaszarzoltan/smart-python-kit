@@ -1,12 +1,12 @@
-"""Pre-development tests for the cli.table module (Table Formatter).
+"""Behavioral and interface tests for the cli.table module (Table Formatter).
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify TableConfig class exists with correct fields
     - Verify function signatures and type hints
     - Verify __all__ exports
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - render_table() with various parameters
     - display_table()
     - dataframe_to_table()

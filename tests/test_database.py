@@ -1,11 +1,11 @@
-"""Pre-development tests for the database module.
+"""Behavioral and interface tests for the database module.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify classes exist and are callable
     - Verify method signatures and type hints
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - get_session() raises
     - CRUD operations raise
     - CRUD instantiation raises
@@ -161,40 +161,40 @@ class TestDatabaseBehavioral:
 
     @pytest.mark.asyncio
     async def test_get_session_not_implemented(self) -> None:
-        """get_session should raise NotImplementedError — NOT IMPLEMENTED."""
+        """get_session should raise NotImplementedError."""
         async for _ in get_session():
             pass  # pragma: no cover
 
     def test_crud_instantiation_not_implemented(self) -> None:
-        """CRUD instantiation should raise NotImplementedError — NOT IMPLEMENTED."""
+        """CRUD instantiation should raise NotImplementedError."""
         CRUD(model=Base)  # type: ignore[type-var]
 
     @pytest.mark.asyncio
     async def test_crud_create_not_implemented(self) -> None:
-        """CRUD.create should raise NotImplementedError — NOT IMPLEMENTED."""
+        """CRUD.create should raise NotImplementedError."""
         crud = CRUD[None, None, None](model=Base)  # type: ignore[arg-type]
         await crud.create(db=None, obj_in=None)  # type: ignore[arg-type]
 
     @pytest.mark.asyncio
     async def test_crud_read_not_implemented(self) -> None:
-        """CRUD.read should raise NotImplementedError — NOT IMPLEMENTED."""
+        """CRUD.read should raise NotImplementedError."""
         crud = CRUD[None, None, None](model=Base)  # type: ignore[arg-type]
         await crud.read(db=None, record_id=1)  # type: ignore[arg-type]
 
     @pytest.mark.asyncio
     async def test_crud_update_not_implemented(self) -> None:
-        """CRUD.update should raise NotImplementedError — NOT IMPLEMENTED."""
+        """CRUD.update should raise NotImplementedError."""
         crud = CRUD[None, None, None](model=Base)  # type: ignore[arg-type]
         await crud.update(db=None, db_obj=None, obj_in=None)  # type: ignore[arg-type]
 
     @pytest.mark.asyncio
     async def test_crud_delete_not_implemented(self) -> None:
-        """CRUD.delete should raise NotImplementedError — NOT IMPLEMENTED."""
+        """CRUD.delete should raise NotImplementedError."""
         crud = CRUD[None, None, None](model=Base)  # type: ignore[arg-type]
         await crud.delete(db=None, record_id=1)  # type: ignore[arg-type]
 
     @pytest.mark.asyncio
     async def test_crud_get_multi_not_implemented(self) -> None:
-        """CRUD.get_multi should raise NotImplementedError — NOT IMPLEMENTED."""
+        """CRUD.get_multi should raise NotImplementedError."""
         crud = CRUD[None, None, None](model=Base)  # type: ignore[arg-type]
         await crud.get_multi(db=None)  # type: ignore[arg-type]

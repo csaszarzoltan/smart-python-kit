@@ -1,11 +1,11 @@
-"""Pre-development tests for the testing module — Database Fixtures.
+"""Behavioral and interface tests for the testing module — Database Fixtures.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify db_engine fixture exists/exports correctly
     - Verify db_session fixture exists/exports correctly
     - Verify fixture signatures and type hints
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - db_engine creates in-memory SQLite engine
     - db_session creates tables, yields session, rolls back after test
     - Tables created before each test, cleaned after
@@ -74,12 +74,12 @@ class TestDatabaseFixturesInterface:
 
 
 class TestDatabaseFixturesBehavioral:
-    """Verify database fixture behaviors — stubs raise NotImplementedError."""
+    """Verify database fixture behaviors."""
 
     @pytest.mark.asyncio
     async def test_db_engine_creates_in_memory_sqlite(self) -> None:
         """db_engine should create an in-memory SQLite engine."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         engine = await anext(db_engine())
         assert engine is not None
         assert "sqlite" in str(engine.url)
@@ -87,7 +87,7 @@ class TestDatabaseFixturesBehavioral:
     @pytest.mark.asyncio
     async def test_db_session_creates_tables(self) -> None:
         """db_session should create tables before yielding."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         async for session in db_session():
             # If we get here, tables were created — just verify session works
             assert session is not None
@@ -96,7 +96,7 @@ class TestDatabaseFixturesBehavioral:
     @pytest.mark.asyncio
     async def test_db_session_rolls_back(self) -> None:
         """db_session should roll back after test completes."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         records: list[Any] = []
         async for session in db_session():
             records.append(session)
@@ -106,6 +106,6 @@ class TestDatabaseFixturesBehavioral:
     @pytest.mark.asyncio
     async def test_db_session_cleanup_after_test(self) -> None:
         """db_session should drop tables after yield."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         async for _ in db_session():
             pass  # pragma: no cover

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -54,9 +55,9 @@ def test_generated_resource_real_sqlite_crud_integration(tmp_path: Path) -> None
                                  "--field", "name:str:required", "--field", "price:float:required"])
     assert result.exit_code == 0, result.output
     env = dict(__import__("os").environ)
-    env["PYTHONPATH"] = f"/opt/oai-pkgs:{project}"
+    env["PYTHONPATH"] = str(project) + __import__("os").pathsep + env.get("PYTHONPATH", "")
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-    completed = subprocess.run(["/usr/bin/python3", "-m", "pytest", "-q", "tests/test_products.py"],
+    completed = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests/test_products.py"],
                                cwd=project, env=env, text=True, capture_output=True, check=False)
     assert completed.returncode == 0, completed.stdout + completed.stderr
 

@@ -1,11 +1,11 @@
-"""Pre-development tests for the api module.
+"""Behavioral and interface tests for the api module.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify Pydantic models exist with correct fields
     - Verify function signatures and type hints
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - create_response() raises
     - paginate() raises
     - register_exception_handlers() raises
@@ -177,17 +177,17 @@ class TestApiBehavioral:
     """Verify api module behaviors are stubbed — all should raise NotImplementedError."""
 
     def test_create_response_not_implemented(self) -> None:
-        """create_response should raise NotImplementedError — NOT IMPLEMENTED."""
+        """create_response should raise NotImplementedError."""
         create_response(data={"key": "value"})
 
     def test_paginate_not_implemented(self) -> None:
-        """paginate should raise NotImplementedError — NOT IMPLEMENTED."""
+        """paginate should raise NotImplementedError."""
         from sqlalchemy import select
         query = select(1)
         paginate(query=query)
 
     def test_register_exception_handlers_not_implemented(self) -> None:
-        """register_exception_handlers should raise NotImplementedError — NOT IMPLEMENTED."""
+        """register_exception_handlers should raise NotImplementedError."""
         from fastapi import FastAPI
         app = FastAPI()
         register_exception_handlers(app=app)

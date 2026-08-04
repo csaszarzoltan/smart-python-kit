@@ -1,4 +1,5 @@
-"""Run the canonical CLI with ``python -m smartvintaawesomekit.cli``."""
+"""Run the canonical CLI as a module."""
+
 from smartvintaawesomekit.cli import app
 
 if __name__ == "__main__":

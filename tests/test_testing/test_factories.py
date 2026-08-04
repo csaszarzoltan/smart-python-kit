@@ -1,12 +1,12 @@
-"""Pre-development tests for the testing module — Factories.
+"""Behavioral and interface tests for the testing module — Factories.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify classes exist
     - Verify class/method signatures and type hints
     - Verify factory defaults
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - ModelFactory.build() returns model instance
     - ModelFactory.build(overrides) applies overrides
     - ModelFactory.create(db_session) persists to DB
@@ -16,6 +16,9 @@ Behavioral tests (FAIL with NotImplementedError):
 from __future__ import annotations
 
 import inspect
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import get_type_hints
 
 from smartvintaawesomekit.testing import (
@@ -82,25 +85,24 @@ class TestModelFactoryInterface:
 
 
 class TestModelFactoryBehavioral:
-    """Verify ModelFactory behaviors — stubs raise NotImplementedError."""
+    """Verify ModelFactory behaviors."""
 
     def test_modelfactory_build_returns_instance(self) -> None:
         """ModelFactory.build() should return a model instance with defaults."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         instance = ModelFactory.build()
         assert instance is not None
 
     def test_modelfactory_build_with_overrides(self) -> None:
         """ModelFactory.build(overrides) should apply overrides."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         instance = ModelFactory.build(overrides={"name": "overridden"})
         assert instance is not None
 
-    def test_modelfactory_create_persists(self) -> None:
-        """ModelFactory.create(db_session) should persist to DB."""
-        # NOT IMPLEMENTED
-        instance = ModelFactory.create(db_session=None)
-        assert instance is not None
+    @pytest.mark.asyncio
+    async def test_modelfactory_create_builds_without_session(self) -> None:
+        instance = await ModelFactory.create(db_session=None, name="example")
+        assert instance == {"name": "example"}
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -146,25 +148,24 @@ class TestUserFactoryInterface:
 
 
 class TestUserFactoryBehavioral:
-    """Verify UserFactory behaviors — stubs raise NotImplementedError."""
+    """Verify UserFactory behaviors."""
 
     def test_userfactory_build_defaults(self) -> None:
         """UserFactory.build() should return a User with default values."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         user = UserFactory.build()
         assert user is not None
 
     def test_userfactory_build_with_overrides(self) -> None:
         """UserFactory.build(overrides) should apply custom values."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         user = UserFactory.build(overrides={"username": "custom_user"})
         assert user is not None
 
-    def test_userfactory_create_persists_to_db(self) -> None:
-        """UserFactory.create() should write to the database."""
-        # NOT IMPLEMENTED
-        user = UserFactory.create(db_session=None)
-        assert user is not None
+    @pytest.mark.asyncio
+    async def test_userfactory_create_persists_to_db(self, db_session: AsyncSession) -> None:
+        user = await UserFactory.create(db_session, email="persist-user@example.com", username="persist_user")
+        assert await db_session.get(type(user), user.id) is user
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -205,25 +206,24 @@ class TestRoleFactoryInterface:
 
 
 class TestRoleFactoryBehavioral:
-    """Verify RoleFactory behaviors — stubs raise NotImplementedError."""
+    """Verify RoleFactory behaviors."""
 
     def test_rolefactory_build_defaults(self) -> None:
         """RoleFactory.build() should return a Role with default values."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         role = RoleFactory.build()
         assert role is not None
 
     def test_rolefactory_build_with_overrides(self) -> None:
         """RoleFactory.build(overrides) should apply custom values."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         role = RoleFactory.build(overrides={"name": "admin"})
         assert role is not None
 
-    def test_rolefactory_create_persists_to_db(self) -> None:
-        """RoleFactory.create() should write to the database."""
-        # NOT IMPLEMENTED
-        role = RoleFactory.create(db_session=None)
-        assert role is not None
+    @pytest.mark.asyncio
+    async def test_rolefactory_create_persists_to_db(self, db_session: AsyncSession) -> None:
+        role = await RoleFactory.create(db_session, name="persist_role")
+        assert await db_session.get(type(role), role.id) is role
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -264,25 +264,25 @@ class TestSessionRecordFactoryInterface:
 
 
 class TestSessionRecordFactoryBehavioral:
-    """Verify SessionRecordFactory behaviors — stubs raise NotImplementedError."""
+    """Verify SessionRecordFactory behaviors."""
 
     def test_sessionrecordfactory_build_defaults(self) -> None:
         """SessionRecordFactory.build() should return a SessionRecord with defaults."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         record = SessionRecordFactory.build()
         assert record is not None
 
     def test_sessionrecordfactory_build_with_overrides(self) -> None:
         """SessionRecordFactory.build(overrides) should apply custom values."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         record = SessionRecordFactory.build(overrides={"token": "custom-token"})
         assert record is not None
 
-    def test_sessionrecordfactory_create_persists_to_db(self) -> None:
-        """SessionRecordFactory.create() should write to the database."""
-        # NOT IMPLEMENTED
-        record = SessionRecordFactory.create(db_session=None)
-        assert record is not None
+    @pytest.mark.asyncio
+    async def test_sessionrecordfactory_create_persists_to_db(self, db_session: AsyncSession) -> None:
+        user = await UserFactory.create(db_session, email="session-user@example.com", username="session_user")
+        record = await SessionRecordFactory.create(db_session, user_id=user.id, refresh_token_jti="persist-session-jti")
+        assert await db_session.get(type(record), record.id) is record
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -323,25 +323,26 @@ class TestUserRoleFactoryInterface:
 
 
 class TestUserRoleFactoryBehavioral:
-    """Verify UserRoleFactory behaviors — stubs raise NotImplementedError."""
+    """Verify UserRoleFactory behaviors."""
 
     def test_userrolefactory_build_defaults(self) -> None:
         """UserRoleFactory.build() should return a UserRole with defaults."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         user_role = UserRoleFactory.build()
         assert user_role is not None
 
     def test_userrolefactory_build_with_overrides(self) -> None:
         """UserRoleFactory.build(overrides) should apply custom values."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         user_role = UserRoleFactory.build(overrides={"role_id": 2})
         assert user_role is not None
 
-    def test_userrolefactory_create_persists_to_db(self) -> None:
-        """UserRoleFactory.create() should write to the database."""
-        # NOT IMPLEMENTED
-        user_role = UserRoleFactory.create(db_session=None)
-        assert user_role is not None
+    @pytest.mark.asyncio
+    async def test_userrolefactory_create_persists_to_db(self, db_session: AsyncSession) -> None:
+        user = await UserFactory.create(db_session, email="role-user@example.com", username="role_user")
+        role = await RoleFactory.create(db_session, name="linked_role")
+        user_role = await UserRoleFactory.create(db_session, user_id=user.id, role_id=role.id)
+        assert await db_session.get(type(user_role), (user.id, role.id)) is user_role
 
 
 # ──────────────────────────────────────────────────────────────────

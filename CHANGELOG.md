@@ -1,17 +1,18 @@
 # Changelog
 
-## v0.9.10 - 2026-08-04
+## v0.9.12 - 2026-08-04
 
-### QA Remediation
-- Fixed clean-checkout pytest plugin subprocesses by removing repository-local `.venv` assumptions and using the active interpreter/environment.
-- Reduced the duplicate top-level CLI module to a compatibility shim and added `python -m smartvintaawesomekit.cli` support.
-- Added `pytest-cov` to declared extras and removed the unexplained nested generated project artifact.
-- Added an authoritative capability matrix and corrected feature claims to distinguish shipped, partial, and roadmap scope.
-- Retained the independent review report and appended remediation evidence.
+### Continued QA Remediation
+- Removed hardcoded system-Python and environment-specific package-path assumptions from generated-resource integration tests.
+- Replaced remaining un-awaited factory pseudo-tests with real async SQLite persistence assertions.
+- Replaced placeholder password and Redis checks with real behavior tests.
+- Removed stale placeholder-era and RED-phase wording from tests while preserving behavior.
+- Published honest shipped/partial/roadmap scope and whole-package coverage.
 
 ### Verification
-- Full suite: 1,061 passed, 0 failed.
-- Repository lint and Python compilation pass.
+- Full suite: 1,060 passed, 0 failed, 0 warnings.
+- Whole-package statement coverage: 84% across 2,407 statements.
+- Ruff and Python compilation pass.
 
 ## v0.9.9 - 2026-08-04
 

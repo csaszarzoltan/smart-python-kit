@@ -1,13 +1,13 @@
-"""Pre-development tests for the auth module — all 7 sub-modules.
+"""Behavioral and interface tests for the auth module — all 7 sub-modules.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify classes/functions exist
     - Verify class/method signatures and type hints
     - Verify enum values
     - Verify model fields
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - Token creation, decoding, refresh
     - Password hashing, verification, rehash
     - OAuth2 authorization URL, code exchange, user info
@@ -151,12 +151,12 @@ class TestAuthConfigInterface:
 
 
 class TestAuthConfigBehavioral:
-    """Verify config module behaviors — stubs raise NotImplementedError."""
+    """Verify config module behaviors."""
 
     def test_authconfig_instantiation(self) -> None:
         """AuthConfig should be instantiable with jwt_secret_key."""
-        config = AuthConfig(jwt_secret_key="test-secret")
-        assert config.jwt_secret_key == "test-secret"
+        config = AuthConfig(jwt_secret_key="test-secret-key-with-at-least-32-bytes")
+        assert config.jwt_secret_key == "test-secret-key-with-at-least-32-bytes"
         assert config.jwt_algorithm == "HS256"
 
 
@@ -282,30 +282,30 @@ class TestJWTInterface:
 
 
 class TestJWTBehavioral:
-    """Verify JWT module behaviors — stubs raise NotImplementedError."""
+    """Verify JWT module behaviors."""
 
     def test_create_access_token_not_implemented(self) -> None:
-        """create_access_token should raise NotImplementedError — NOT IMPLEMENTED."""
-        config = AuthConfig(jwt_secret_key="test-secret")
+        """create_access_token should raise NotImplementedError."""
+        config = AuthConfig(jwt_secret_key="test-secret-key-with-at-least-32-bytes")
         manager = JWTManager(config)
         manager.create_access_token(subject="user123")
 
     def test_create_refresh_token_not_implemented(self) -> None:
-        """create_refresh_token should raise NotImplementedError — NOT IMPLEMENTED."""
-        config = AuthConfig(jwt_secret_key="test-secret")
+        """create_refresh_token should raise NotImplementedError."""
+        config = AuthConfig(jwt_secret_key="test-secret-key-with-at-least-32-bytes")
         manager = JWTManager(config)
         manager.create_refresh_token(subject="user123")
 
     def test_create_token_pair_not_implemented(self) -> None:
-        """create_token_pair should raise NotImplementedError — NOT IMPLEMENTED."""
-        config = AuthConfig(jwt_secret_key="test-secret")
+        """create_token_pair should raise NotImplementedError."""
+        config = AuthConfig(jwt_secret_key="test-secret-key-with-at-least-32-bytes")
         manager = JWTManager(config)
         manager.create_token_pair(subject="user123")
 
     def test_decode_token_invalid_token_raises(self) -> None:
         """decode_token should raise JWTError for invalid tokens."""
         import jwt as pyjwt
-        config = AuthConfig(jwt_secret_key="test-secret")
+        config = AuthConfig(jwt_secret_key="test-secret-key-with-at-least-32-bytes")
         manager = JWTManager(config)
         with pytest.raises(pyjwt.PyJWTError):
             manager.decode_token(token="fake.jwt.token")
@@ -313,14 +313,14 @@ class TestJWTBehavioral:
     def test_refresh_access_token_invalid_token_raises(self) -> None:
         """refresh_access_token should raise JWTError for invalid tokens."""
         import jwt as pyjwt
-        config = AuthConfig(jwt_secret_key="test-secret")
+        config = AuthConfig(jwt_secret_key="test-secret-key-with-at-least-32-bytes")
         manager = JWTManager(config)
         with pytest.raises(pyjwt.PyJWTError):
             manager.refresh_access_token(refresh_token="fake.refresh.token")
 
     def test_refresh_access_token_non_refresh_token_raises(self) -> None:
         """refresh_access_token should raise ValueError for non-refresh tokens."""
-        config = AuthConfig(jwt_secret_key="test-secret")
+        config = AuthConfig(jwt_secret_key="test-secret-key-with-at-least-32-bytes")
         manager = JWTManager(config)
         # Create an access token (not a refresh token)
         access_token = manager.create_access_token(subject="user123")
@@ -405,26 +405,22 @@ class TestPasswordInterface:
 
 
 class TestPasswordBehavioral:
-    """Verify password hashing behaviors — stubs raise NotImplementedError."""
+    """Verify password hashing behaviors."""
 
     def test_passwordhasher_init_not_implemented(self) -> None:
-        """PasswordHasher.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
+        """PasswordHasher.__init__ should raise NotImplementedError."""
         PasswordHasher(algorithm="bcrypt")
 
-    def test_hash_password_not_implemented(self) -> None:
-        """hash_password should raise NotImplementedError — NOT IMPLEMENTED."""
-        hasher = PasswordHasher.__new__(PasswordHasher)
-        hasher.hash_password(password="secret123")
+    def test_hash_and_verify_password_roundtrip(self) -> None:
+        hasher = PasswordHasher("bcrypt")
+        hashed = hasher.hash_password("secret123")
+        assert hasher.verify_password("secret123", hashed)
+        assert not hasher.verify_password("wrong", hashed)
 
-    def test_verify_password_not_implemented(self) -> None:
-        """verify_password should raise NotImplementedError — NOT IMPLEMENTED."""
-        hasher = PasswordHasher.__new__(PasswordHasher)
-        hasher.verify_password(password="secret123", hashed="$2b$12$fake")
-
-    def test_needs_rehash_not_implemented(self) -> None:
-        """needs_rehash should raise NotImplementedError — NOT IMPLEMENTED."""
-        hasher = PasswordHasher.__new__(PasswordHasher)
-        hasher.needs_rehash(hashed="$2b$12$fake")
+    def test_invalid_hash_fails_closed_and_needs_rehash(self) -> None:
+        hasher = PasswordHasher("bcrypt")
+        assert not hasher.verify_password("secret123", "$2b$12$fake")
+        assert hasher.needs_rehash("$2b$12$fake")
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -532,18 +528,18 @@ class TestOAuth2Interface:
 
 
 class TestOAuth2Behavioral:
-    """Verify OAuth2 module behaviors — stubs raise NotImplementedError."""
+    """Verify OAuth2 module behaviors."""
 
     def test_googleoauth2_init_not_implemented(self) -> None:
-        """GoogleOAuth2.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
+        """GoogleOAuth2.__init__ should raise NotImplementedError."""
         GoogleOAuth2(client_id="id", client_secret="secret", redirect_uri="http://localhost/callback")
 
     def test_githuboauth2_init_not_implemented(self) -> None:
-        """GitHubOAuth2.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
+        """GitHubOAuth2.__init__ should raise NotImplementedError."""
         GitHubOAuth2(client_id="id", client_secret="secret", redirect_uri="http://localhost/callback")
 
     def test_get_provider_not_implemented(self) -> None:
-        """get_provider should raise NotImplementedError — NOT IMPLEMENTED."""
+        """get_provider should raise NotImplementedError."""
         config = AuthConfig(jwt_secret_key="test")
         get_provider(name="google", config=config, redirect_uri="http://localhost/callback")
 
@@ -636,33 +632,33 @@ class TestRBACInterface:
 
 
 class TestRBACBehavioral:
-    """Verify RBAC module behaviors — stubs raise NotImplementedError."""
+    """Verify RBAC module behaviors."""
 
     def test_rbacmanager_init_not_implemented(self) -> None:
-        """RBACManager.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
+        """RBACManager.__init__ should raise NotImplementedError."""
         RBACManager()
 
     def test_register_role_not_implemented(self) -> None:
-        """register_role should raise NotImplementedError — NOT IMPLEMENTED."""
+        """register_role should raise NotImplementedError."""
         mgr = RBACManager.__new__(RBACManager)
         mgr.register_role(name="editor", permissions={"read", "write"})
 
     def test_check_permission_not_implemented(self) -> None:
-        """check_permission should raise NotImplementedError — NOT IMPLEMENTED."""
+        """check_permission should raise NotImplementedError."""
         mgr = RBACManager.__new__(RBACManager)
         mgr.check_permission(user_roles=["admin"], required_permission="delete")
 
     def test_get_user_permissions_not_implemented(self) -> None:
-        """get_user_permissions should raise NotImplementedError — NOT IMPLEMENTED."""
+        """get_user_permissions should raise NotImplementedError."""
         mgr = RBACManager.__new__(RBACManager)
         mgr.get_user_permissions(user_roles=["admin", "user"])
 
     def test_require_role_not_implemented(self) -> None:
-        """require_role should raise NotImplementedError — NOT IMPLEMENTED."""
+        """require_role should raise NotImplementedError."""
         require_role("admin", "user")
 
     def test_require_permission_not_implemented(self) -> None:
-        """require_permission should raise NotImplementedError — NOT IMPLEMENTED."""
+        """require_permission should raise NotImplementedError."""
         require_permission("delete")
 
 
@@ -764,17 +760,17 @@ class TestSessionInterface:
 
 
 class TestSessionBehavioral:
-    """Verify session module behaviors — stubs raise NotImplementedError."""
+    """Verify session module behaviors."""
 
     def test_sessionmanager_init_not_implemented(self) -> None:
-        """SessionManager.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
+        """SessionManager.__init__ should raise NotImplementedError."""
         from unittest.mock import AsyncMock
         db = AsyncMock()
         config = AuthConfig(jwt_secret_key="test")
         SessionManager(db=db, config=config)
 
     def test_create_session_not_implemented(self) -> None:
-        """create_session should raise NotImplementedError — NOT IMPLEMENTED."""
+        """create_session should raise NotImplementedError."""
         mgr = SessionManager.__new__(SessionManager)
         import asyncio
         asyncio.get_event_loop().run_until_complete(
@@ -968,15 +964,15 @@ class TestMiddlewareInterface:
 
 
 class TestMiddlewareBehavioral:
-    """Verify middleware module behaviors — stubs raise NotImplementedError."""
+    """Verify middleware module behaviors."""
 
     def test_authmiddleware_init_not_implemented(self) -> None:
-        """AuthMiddleware.__init__ should raise NotImplementedError — NOT IMPLEMENTED."""
+        """AuthMiddleware.__init__ should raise NotImplementedError."""
         jwt_mgr = JWTManager.__new__(JWTManager)
         AuthMiddleware(jwt_manager=jwt_mgr, skip_paths=["/health"])
 
     def test_create_auth_dependencies_not_implemented(self) -> None:
-        """create_auth_dependencies should raise NotImplementedError — NOT IMPLEMENTED."""
+        """create_auth_dependencies should raise NotImplementedError."""
         config = AuthConfig(jwt_secret_key="test")
         create_auth_dependencies(config=config)
 

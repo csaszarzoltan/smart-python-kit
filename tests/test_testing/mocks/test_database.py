@@ -1,10 +1,10 @@
-"""Pre-development tests for Mock Database classes.
+"""Behavioral and interface tests for Mock Database classes.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify MockAsyncSession, MockCRUD exist
     - Verify method signatures and return types
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - MockAsyncSession supports execute(), add(), flush(), commit(), rollback()
     - MockCRUD wraps CRUD operations
 """
@@ -101,12 +101,12 @@ class TestMockAsyncSessionInterface:
 
 
 class TestMockAsyncSessionBehavioral:
-    """Verify MockAsyncSession behaviors — stubs raise NotImplementedError."""
+    """Verify MockAsyncSession behaviors."""
 
     @pytest.mark.asyncio
     async def test_execute_works(self) -> None:
         """MockAsyncSession.execute() should accept and process statements."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         session = MockAsyncSession()
         result = await session.execute("SELECT 1")
         assert result is not None
@@ -114,7 +114,7 @@ class TestMockAsyncSessionBehavioral:
     @pytest.mark.asyncio
     async def test_add_and_flush(self) -> None:
         """MockAsyncSession should support add() followed by flush()."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         session = MockAsyncSession()
         await session.add({"id": 1, "name": "test"})
         await session.flush()
@@ -122,28 +122,28 @@ class TestMockAsyncSessionBehavioral:
     @pytest.mark.asyncio
     async def test_commit_works(self) -> None:
         """MockAsyncSession.commit() should work without error."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         session = MockAsyncSession()
         await session.commit()
 
     @pytest.mark.asyncio
     async def test_rollback_works(self) -> None:
         """MockAsyncSession.rollback() should work without error."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         session = MockAsyncSession()
         await session.rollback()
 
     @pytest.mark.asyncio
     async def test_close_works(self) -> None:
         """MockAsyncSession.close() should work without error."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         session = MockAsyncSession()
         await session.close()
 
     @pytest.mark.asyncio
     async def test_add_then_execute(self) -> None:
         """MockAsyncSession should reflect added objects in subsequent queries."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         session = MockAsyncSession()
         await session.add({"id": 1, "name": "test"})
         await session.flush()
@@ -215,12 +215,12 @@ class TestMockCRUDInterface:
 
 
 class TestMockCRUDBehavioral:
-    """Verify MockCRUD behaviors — stubs raise NotImplementedError."""
+    """Verify MockCRUD behaviors."""
 
     @pytest.mark.asyncio
     async def test_create_item(self) -> None:
         """MockCRUD.create() should create and return an item."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         crud = MockCRUD()
         session = MockAsyncSession()
         result = await crud.create(db_session=session, obj_in={"name": "test"})
@@ -229,7 +229,7 @@ class TestMockCRUDBehavioral:
     @pytest.mark.asyncio
     async def test_read_item(self) -> None:
         """MockCRUD.read() should return an item by id."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         crud = MockCRUD()
         session = MockAsyncSession()
         result = await crud.read(db_session=session, record_id=1)
@@ -238,7 +238,7 @@ class TestMockCRUDBehavioral:
     @pytest.mark.asyncio
     async def test_update_item(self) -> None:
         """MockCRUD.update() should update and return an item."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         crud = MockCRUD()
         session = MockAsyncSession()
         result = await crud.update(db_session=session, record_id=1, obj_in={"name": "updated"})
@@ -247,7 +247,7 @@ class TestMockCRUDBehavioral:
     @pytest.mark.asyncio
     async def test_delete_item(self) -> None:
         """MockCRUD.delete() should delete an item."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         crud = MockCRUD()
         session = MockAsyncSession()
         result = await crud.delete(db_session=session, record_id=1)
@@ -256,7 +256,7 @@ class TestMockCRUDBehavioral:
     @pytest.mark.asyncio
     async def test_list_items(self) -> None:
         """MockCRUD.list() should return items with pagination."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         crud = MockCRUD()
         session = MockAsyncSession()
         method = getattr(crud, "list", None) or getattr(crud, "get_multi", None)

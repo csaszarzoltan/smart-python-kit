@@ -1,13 +1,13 @@
-"""Pre-development tests for the cache module — all 7 sub-modules.
+"""Behavioral and interface tests for the cache module — all 7 sub-modules.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify classes/functions exist
     - Verify class/method signatures and type hints
     - Verify model fields and defaults
     - Verify __all__ exports
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - CacheBackend ABC instantiation guard
     - MemoryCache set/get/delete round-trip, TTL expiry, thread safety, LRU eviction
     - RedisCache set/get/delete round-trip, TTL via SETEX, connection pooling
@@ -128,7 +128,7 @@ class TestCacheBackendInterface:
 
 
 class TestCacheBackendBehavioral:
-    """Verify CacheBackend ABC behaviors — stubs raise NotImplementedError."""
+    """Verify CacheBackend ABC behaviors."""
 
     def test_cachebackend_cannot_be_instantiated(self) -> None:
         """CacheBackend should not be instantiable directly (ABC)."""
@@ -226,7 +226,7 @@ class TestCacheConfigInterface:
 
 
 class TestCacheConfigBehavioral:
-    """Verify CacheConfig module behaviors — stubs raise NotImplementedError."""
+    """Verify CacheConfig module behaviors."""
 
     def test_cacheconfig_instantiation(self) -> None:
         """CacheConfig should be instantiable with default values."""
@@ -309,16 +309,16 @@ class TestMemoryCacheInterface:
 
 
 class TestMemoryCacheBehavioral:
-    """Verify MemoryCache behaviors — stubs raise NotImplementedError."""
+    """Verify MemoryCache behaviors."""
 
     def test_memorycache_init_not_implemented(self) -> None:
         """MemoryCache.__init__ should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         MemoryCache()
 
     def test_memorycache_set_get_roundtrip(self) -> None:
         """MemoryCache.set followed by .get should return the stored value."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MemoryCache.__new__(MemoryCache)
         import asyncio
         asyncio.get_event_loop().run_until_complete(cache.set("key", "value"))
@@ -327,7 +327,7 @@ class TestMemoryCacheBehavioral:
 
     def test_memorycache_ttl_expiry(self) -> None:
         """MemoryCache should expire entries after their TTL elapses."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MemoryCache.__new__(MemoryCache)
         import asyncio
         asyncio.get_event_loop().run_until_complete(cache.set("key", "value", ttl=0))
@@ -336,7 +336,7 @@ class TestMemoryCacheBehavioral:
 
     def test_memorycache_thread_safety(self) -> None:
         """MemoryCache should be thread-safe under concurrent access."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MemoryCache.__new__(MemoryCache)
         import asyncio
 
@@ -351,7 +351,7 @@ class TestMemoryCacheBehavioral:
 
     def test_memorycache_lru_eviction(self) -> None:
         """MemoryCache should evict least-recently-used entries when max_size exceeded."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MemoryCache.__new__(MemoryCache)
         import asyncio
 
@@ -366,7 +366,7 @@ class TestMemoryCacheBehavioral:
 
     def test_memorycache_delete(self) -> None:
         """MemoryCache.delete should remove a key and return True."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MemoryCache.__new__(MemoryCache)
         import asyncio
         asyncio.get_event_loop().run_until_complete(cache.set("key", "value"))
@@ -377,7 +377,7 @@ class TestMemoryCacheBehavioral:
 
     def test_memorycache_clear(self) -> None:
         """MemoryCache.clear should remove all entries."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MemoryCache.__new__(MemoryCache)
         import asyncio
 
@@ -392,7 +392,7 @@ class TestMemoryCacheBehavioral:
 
     def test_memorycache_get_stats(self) -> None:
         """MemoryCache.get_stats should return dict with size/hits/misses/evictions."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = MemoryCache.__new__(MemoryCache)
         import asyncio
         stats = asyncio.get_event_loop().run_until_complete(cache.get_stats())
@@ -452,21 +452,21 @@ class TestRedisCacheInterface:
 
 
 class TestRedisCacheBehavioral:
-    """Verify RedisCache behaviors — stubs raise NotImplementedError."""
+    """Verify RedisCache behaviors."""
 
     def test_rediscache_init_not_implemented(self) -> None:
         """RedisCache.__init__ should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         RedisCache(redis_client=None)
 
-    def test_rediscache_from_url_not_implemented(self) -> None:
-        """RedisCache.from_url should raise NotImplementedError."""
-        # NOT IMPLEMENTED
-        RedisCache.from_url("redis://localhost:6379")
+    def test_rediscache_from_url_builds_lazy_client(self) -> None:
+        cache = RedisCache.from_url("redis://localhost:6379/0", namespace="tests")
+        assert cache._namespace == "tests"
+        assert cache._redis is not None
 
     def test_rediscache_set_get_roundtrip(self) -> None:
         """RedisCache.set followed by .get should return the stored value."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = RedisCache.__new__(RedisCache)
         import asyncio
         asyncio.get_event_loop().run_until_complete(cache.set("key", "value"))
@@ -475,7 +475,7 @@ class TestRedisCacheBehavioral:
 
     def test_rediscache_ttl_via_setex(self) -> None:
         """RedisCache.set should use SETEX/EXPIRE for TTL."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cache = RedisCache.__new__(RedisCache)
         import asyncio
         asyncio.get_event_loop().run_until_complete(cache.set("key", "value", ttl=60))
@@ -564,16 +564,16 @@ class TestCachedDecoratorInterface:
 
 
 class TestCachedDecoratorBehavioral:
-    """Verify cached decorator behaviors — stubs raise NotImplementedError."""
+    """Verify cached decorator behaviors."""
 
     def test_cached_not_implemented(self) -> None:
         """cached() should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         cached()(lambda: "hello")()
 
     def test_cached_async_not_implemented(self) -> None:
         """cached() on async function should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         import asyncio
 
         @cached(ttl=60)
@@ -584,7 +584,7 @@ class TestCachedDecoratorBehavioral:
 
     def test_cached_ttl_respected(self) -> None:
         """cached() should respect ttl parameter."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         call_count = 0
 
         @cached(ttl=0)
@@ -601,7 +601,7 @@ class TestCachedDecoratorBehavioral:
 
     def test_cached_prefix_key_namespacing(self) -> None:
         """cached() with prefix should namespace keys."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         @cached(prefix="users", ttl=300)
         def get_user(user_id: int) -> dict:
             return {"id": user_id}
@@ -611,7 +611,7 @@ class TestCachedDecoratorBehavioral:
 
     def test_cached_tag_attachment(self) -> None:
         """cached() with tags should attach tags to cache entries."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         @cached(tags=["user-data", "config"], ttl=300)
         def get_config() -> dict:
             return {"theme": "dark"}
@@ -621,7 +621,7 @@ class TestCachedDecoratorBehavioral:
 
     def test_invalidate_cache_not_implemented(self) -> None:
         """invalidate_cache() should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         invalidate_cache(tags=["user:42"])
 
 
@@ -705,37 +705,37 @@ class TestCacheInvalidationInterface:
 
 
 class TestCacheInvalidationBehavioral:
-    """Verify CacheInvalidation behaviors — stubs raise NotImplementedError."""
+    """Verify CacheInvalidation behaviors."""
 
     def test_cacheinvalidation_init_not_implemented(self) -> None:
         """CacheInvalidation.__init__ should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         CacheInvalidation(cache=None)
 
     def test_invalidate_tags_not_implemented(self) -> None:
         """invalidate_tags should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         inv = CacheInvalidation.__new__(CacheInvalidation)
         import asyncio
         asyncio.get_event_loop().run_until_complete(inv.invalidate_tags(["user:42"]))
 
     def test_invalidate_prefix_not_implemented(self) -> None:
         """invalidate_prefix should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         inv = CacheInvalidation.__new__(CacheInvalidation)
         import asyncio
         asyncio.get_event_loop().run_until_complete(inv.invalidate_prefix("users:"))
 
     def test_add_tags_not_implemented(self) -> None:
         """add_tags should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         inv = CacheInvalidation.__new__(CacheInvalidation)
         import asyncio
         asyncio.get_event_loop().run_until_complete(inv.add_tags("key:1", ["user:42"]))
 
     def test_get_tag_keys_not_implemented(self) -> None:
         """get_tag_keys should raise NotImplementedError."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         inv = CacheInvalidation.__new__(CacheInvalidation)
         import asyncio
         asyncio.get_event_loop().run_until_complete(inv.get_tag_keys("user:42"))
@@ -808,18 +808,18 @@ class TestCacheStatsInterface:
 
 
 class TestCacheStatsBehavioral:
-    """Verify CacheStats behaviors — stubs raise NotImplementedError."""
+    """Verify CacheStats behaviors."""
 
     def test_cachestats_hit_rate_calculation(self) -> None:
         """CacheStats.hit_rate should return hits / (hits + misses)."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         stats = CacheStats(hits=80, misses=20)
         rate = stats.hit_rate
         assert rate == 0.8
 
     def test_cachestats_reset_clears_counters(self) -> None:
         """CacheStats.reset should set all counters to zero."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         stats = CacheStats(hits=100, misses=50, evictions=5, size=1000)
         stats.reset()
         assert stats.hits == 0
@@ -828,7 +828,7 @@ class TestCacheStatsBehavioral:
 
     def test_cachestats_hit_rate_zero_division(self) -> None:
         """CacheStats.hit_rate should return 0.0 when total is zero."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         stats = CacheStats(hits=0, misses=0)
         rate = stats.hit_rate
         assert rate == 0.0

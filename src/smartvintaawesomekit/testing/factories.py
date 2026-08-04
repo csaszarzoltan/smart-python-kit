@@ -6,6 +6,7 @@ auth-domain models: User, Role, SessionRecord, and UserRole.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any, Generic, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,8 +46,12 @@ class ModelFactory(Generic[T]):
         Returns:
             A model instance populated with defaults + overrides.
         """
+        legacy = overrides.pop("overrides", None)
+        if legacy is not None:
+            if not isinstance(legacy, dict):
+                raise TypeError("overrides must be a mapping")
+            overrides = {**legacy, **overrides}
         if cls._model_class is None:
-            # When called directly on the base class return a dict
             result: dict[str, Any] = {**cls._defaults, **overrides}
             return result  # type: ignore[return-value]
         instance = cls._model_class(**cls._defaults)
@@ -104,6 +109,7 @@ class SessionRecordFactory(ModelFactory[SessionRecord]):
         "user_id": 1,
         "refresh_token_jti": "test-jti-00000000-0000-0000-0000-000000000000",
         "status": "active",
+        "expires_at": datetime.now(UTC) + timedelta(days=7),
     }
 
 

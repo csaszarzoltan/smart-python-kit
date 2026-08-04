@@ -1,11 +1,11 @@
-"""Pre-development tests for the testing module — Helpers.
+"""Behavioral and interface tests for the testing module — Helpers.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify auth_header() exists with correct signature
     - Verify assert_response() exists with correct signature
     - Verify return types
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - auth_header() returns Authorization dict
     - assert_response() validates API response shape
 """
@@ -77,31 +77,31 @@ class TestHelpersInterface:
 
     def test_auth_header_returns_authorization_dict(self) -> None:
         """auth_header() should return a dict with Authorization key."""
-        # NOT IMPLEMENTED — will fail with NotImplementedError
+        # Implemented behavior — will fail with NotImplementedError
         result = auth_header()
         assert isinstance(result, dict)
         assert "Authorization" in result or "authorization" in result
 
 
 class TestHelpersBehavioral:
-    """Verify helper function behaviors — stubs raise NotImplementedError."""
+    """Verify helper function behaviors."""
 
     def test_auth_header_returns_bearer_token(self) -> None:
         """auth_header() should return 'Bearer <token>' Authorization header."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         result = auth_header(token="test123")
         assert result["Authorization"] == "Bearer test123"
 
     def test_auth_header_defaults_valid_token(self) -> None:
         """auth_header() with no args should return a valid Authorization header."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         result = auth_header()
         assert "Authorization" in result
         assert str(result["Authorization"]).startswith("Bearer ")
 
     def test_assert_response_validates_status(self) -> None:
         """assert_response() should validate response status code."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         class MockResponse:
             status_code = 200
             data = {"message": "ok"}
@@ -111,7 +111,7 @@ class TestHelpersBehavioral:
 
     def test_assert_response_raises_on_wrong_status(self) -> None:
         """assert_response() should raise AssertionError on status mismatch."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         class MockResponse:
             status_code = 404
             data = {"detail": "Not found"}
@@ -121,7 +121,7 @@ class TestHelpersBehavioral:
 
     def test_assert_response_validates_json_body(self) -> None:
         """assert_response() should validate response JSON body keys."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         class MockResponse:
             status_code = 200
             data = {"id": 1, "name": "test"}

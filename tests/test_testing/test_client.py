@@ -1,10 +1,10 @@
-"""Pre-development tests for the testing module — Client Fixtures.
+"""Behavioral and interface tests for the testing module — Client Fixtures.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify async_client fixture exists
     - Verify fixture signature and type hints
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - async_client creates FastAPI test client
     - Client can make GET/POST requests
     - Auth headers work with client
@@ -60,12 +60,12 @@ class TestClientFixturesInterface:
 
 
 class TestClientFixturesBehavioral:
-    """Verify client fixture behaviors — stubs raise NotImplementedError."""
+    """Verify client fixture behaviors."""
 
     @pytest.mark.asyncio
     async def test_async_client_creates_fastapi_test_client(self) -> None:
         """async_client should create a FastAPI test client."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         async for client in async_client():
             assert client is not None
             break
@@ -73,7 +73,7 @@ class TestClientFixturesBehavioral:
     @pytest.mark.asyncio
     async def test_async_client_can_make_get_requests(self) -> None:
         """async_client should support GET requests."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         async for client in async_client():
             response = await client.get("/")
             assert response is not None
@@ -82,7 +82,7 @@ class TestClientFixturesBehavioral:
     @pytest.mark.asyncio
     async def test_async_client_can_make_post_requests(self) -> None:
         """async_client should support POST requests."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         async for client in async_client():
             response = await client.post("/", json={})
             assert response is not None
@@ -91,7 +91,7 @@ class TestClientFixturesBehavioral:
     @pytest.mark.asyncio
     async def test_async_client_auth_headers_work(self) -> None:
         """async_client should work with Authorization headers."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         from smartvintaawesomekit.testing import auth_header
 
         headers = auth_header(token="test-token")

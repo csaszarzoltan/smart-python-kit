@@ -1,11 +1,11 @@
-"""Pre-development tests for the cli.prompts module (Interactive Prompts).
+"""Behavioral and interface tests for the cli.prompts module (Interactive Prompts).
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify Prompt class exists
     - Verify static methods exist with correct signatures
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - Prompt.text(), Prompt.confirm(), Prompt.choice()
     - Prompt.integer(), Prompt.multi_choice()
 """
@@ -183,9 +183,14 @@ class TestPromptsBehavioral:
         """Prompt.text with autocomplete should raise NotImplementedError."""
         Prompt.text("Choose:", autocomplete=["a", "b", "c"])
 
-    def test_text_password_not_implemented(self) -> None:
-        """Prompt.text with password=True should raise NotImplementedError."""
-        Prompt.text("Password:", password=True)
+    def test_text_password_masks_input(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        captured: dict[str, object] = {}
+        def fake_ask(message: str, **kwargs: object) -> str:
+            captured.update(kwargs)
+            return "secret"
+        monkeypatch.setattr("smartvintaawesomekit.cli.prompts.RichPrompt.ask", fake_ask)
+        assert Prompt.text("Password:", password=True) == "secret"
+        assert captured["password"] is True
 
     def test_text_with_default_not_implemented(self) -> None:
         """Prompt.text with default should raise NotImplementedError."""

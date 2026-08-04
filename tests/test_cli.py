@@ -1,12 +1,12 @@
-"""Pre-development tests for the cli module.
+"""Behavioral and interface tests for the cli module.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify Typer app exists
     - Verify commands registered
     - Verify function signatures
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - init command raises NotImplementedError
 """
 

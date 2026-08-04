@@ -1,10 +1,10 @@
-"""Pre-development tests for Mock HTTP classes.
+"""Behavioral and interface tests for Mock HTTP classes.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify MockAsyncClient, MockResponse exist
     - Verify method signatures and return types
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - MockAsyncClient returns configurable responses
     - MockResponse wraps status/data/headers
 """
@@ -52,17 +52,17 @@ class TestMockResponseInterface:
 
 
 class TestMockResponseBehavioral:
-    """Verify MockResponse behaviors — stubs raise NotImplementedError."""
+    """Verify MockResponse behaviors."""
 
     def test_mockresponse_creation(self) -> None:
         """MockResponse should be instantiable with status and data."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         resp = MockResponse(status_code=200, data={"message": "ok"})
         assert resp.status_code == 200
 
     def test_mockresponse_equality_checks(self) -> None:
         """MockResponse should support status code checks (OK/error)."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         resp = MockResponse(status_code=200, data={})
         assert resp.status_code == 200
 
@@ -139,12 +139,12 @@ class TestMockAsyncClientInterface:
 
 
 class TestMockAsyncClientBehavioral:
-    """Verify MockAsyncClient behaviors — stubs raise NotImplementedError."""
+    """Verify MockAsyncClient behaviors."""
 
     @pytest.mark.asyncio
     async def test_mockasyncclient_get_returns_response(self) -> None:
         """MockAsyncClient.get() should return a MockResponse."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         client = MockAsyncClient()
         response = await client.get("/test")
         assert response is not None
@@ -153,7 +153,7 @@ class TestMockAsyncClientBehavioral:
     @pytest.mark.asyncio
     async def test_mockasyncclient_post_returns_response(self) -> None:
         """MockAsyncClient.post() should return a MockResponse."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         client = MockAsyncClient()
         response = await client.post("/test", json={"key": "value"})
         assert response is not None
@@ -162,7 +162,7 @@ class TestMockAsyncClientBehavioral:
     @pytest.mark.asyncio
     async def test_mockasyncclient_put_returns_response(self) -> None:
         """MockAsyncClient.put() should return a MockResponse."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         client = MockAsyncClient()
         response = await client.put("/test/1", json={"name": "updated"})
         assert response is not None
@@ -170,7 +170,7 @@ class TestMockAsyncClientBehavioral:
     @pytest.mark.asyncio
     async def test_mockasyncclient_delete_returns_response(self) -> None:
         """MockAsyncClient.delete() should return a MockResponse."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         client = MockAsyncClient()
         response = await client.delete("/test/1")
         assert response is not None
@@ -178,7 +178,7 @@ class TestMockAsyncClientBehavioral:
     @pytest.mark.asyncio
     async def test_mockasyncclient_configurable_responses(self) -> None:
         """MockAsyncClient should return configurable responses per URL."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         MockResponse(status_code=201, data={"id": 1})
         client = MockAsyncClient()
         # Configurable via whatever mechanism the mock provides

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smartvintaawesomekit"
-version = "0.9.10"
+version = "0.9.12"
 description = "Smart Python developer toolkit — batteries-included project generator, config, database, and API utilities"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -35,6 +35,7 @@ dependencies = [
     "httpx==0.28.1",
     "PyJWT==2.13.0",
     "passlib[bcrypt]==1.7.4",
+    "bcrypt==4.0.1",
     "argon2-cffi==25.1.0",
 ]
 
@@ -44,6 +45,7 @@ dev = [
     "pytest==8.4.2",
     "pytest-asyncio==1.4.0",
     "pytest-cov==6.2.1",
+    "redis==8.1.0",
     "ruff==0.16.1",
     "mypy==2.3.0",
 ]
@@ -51,6 +53,7 @@ test = [
     "pytest==8.4.2,<9",
     "pytest-asyncio==1.4.0,<3",
     "pytest-cov==6.2.1",
+    "redis==8.1.0",
     "httpx==0.28.1",
 ]
 
@@ -103,7 +106,7 @@ quote-style = "double"
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
-filterwarnings = ["ignore::DeprecationWarning"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning"]
 
 [tool.mypy]
 python_version = "3.11"

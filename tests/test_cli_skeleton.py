@@ -1,12 +1,12 @@
-"""Pre-development tests for the cli.skeleton module (CLI Skeleton Generator).
+"""Behavioral and interface tests for the cli.skeleton module (CLI Skeleton Generator).
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify SkeletonConfig class exists with correct fields
     - Verify SkeletonTemplate class exists
     - Verify function signatures and type hints
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - list_templates()
     - generate_project()
     - register_template()

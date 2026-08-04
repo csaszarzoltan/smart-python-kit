@@ -1,11 +1,11 @@
-"""Pre-development tests for the testing module — Pytest Plugin.
+"""Behavioral and interface tests for the testing module — Pytest Plugin.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify pytest plugin entry point in pyproject.toml
     - Verify fixtures appear in pytest --fixtures output
     - Verify plugin module is importable
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - Plugin auto-registers all fixtures
     - Fixtures appear in pytest --fixtures output
 """
@@ -48,10 +48,10 @@ class TestPytestPluginInterface:
             import smartvintaawesomekit.testing.pytest_plugin as plugin  # type: ignore[import-untyped] # noqa: F811
             assert plugin is not None
         except ImportError:
-            # The plugin module may not exist yet — that's OK for RED phase
+            # The plugin module may not exist yet — that's OK for development phase
             # But verify the testing package itself is importable
             import smartvintaawesomekit  # noqa: F401
-            pytest.skip("pytest_plugin module not yet implemented — RED phase expected")
+            pytest.skip("pytest_plugin module not yet implemented — feature availability")
 
     def test_plugin_has_pytest_configure(self) -> None:
         """The plugin module should have pytest_configure or register functions."""
@@ -91,10 +91,10 @@ class TestPytestPluginInterface:
 
 
 class TestPytestPluginBehavioral:
-    """Verify pytest plugin behaviors — stubs raise NotImplementedError.
+    """Verify pytest plugin behaviors.
 
     NOTE: These tests are inherently integration-level and may need the
-    plugin to be installed. During RED phase they fail as expected.
+    plugin to be installed. During development phase they fail as expected.
     """
 
     ROOT = Path(__file__).resolve().parent.parent.parent
@@ -106,7 +106,7 @@ class TestPytestPluginBehavioral:
         false positives (e.g. fixture names appearing in ImportError tracebacks).
         A valid fixture is indented at line start with 2+ spaces before the name.
         """
-        # NOT IMPLEMENTED — requires plugin to be installed
+        # Implemented behavior — requires plugin to be installed
         import re
         import subprocess
         result = subprocess.run(
@@ -136,7 +136,7 @@ class TestPytestPluginBehavioral:
 
     def test_plugin_registers_via_entry_points(self) -> None:
         """Verify the pytest11 entry point exists and points to the right module."""
-        # NOT IMPLEMENTED — fails during RED phase
+        # Implemented behavior — fails during development phase
         pyproject_path = self.ROOT / "pyproject.toml"
         content = pyproject_path.read_text()
 

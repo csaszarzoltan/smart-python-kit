@@ -1,12 +1,12 @@
-"""Pre-development tests for the config module.
+"""Behavioral and interface tests for the config module.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify imports work
     - Verify classes exist
     - Verify class/method signatures and type hints
     - Verify default values
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - Environment detection methods
     - Database URL resolution
     - Feature flag access
@@ -197,21 +197,21 @@ class TestConfigBehavioral:
     """Verify config module behaviors are stubbed — all should raise NotImplementedError."""
 
     def test_is_production_not_implemented(self) -> None:
-        """SmartConfig.is_production should raise NotImplementedError — NOT IMPLEMENTED."""
+        """SmartConfig.is_production should raise NotImplementedError."""
         config = SmartConfig()
         config.is_production()  # raises NotImplementedError → test FAILS
 
     def test_is_development_not_implemented(self) -> None:
-        """SmartConfig.is_development should raise NotImplementedError — NOT IMPLEMENTED."""
+        """SmartConfig.is_development should raise NotImplementedError."""
         config = SmartConfig()
         config.is_development()  # raises NotImplementedError → test FAILS
 
     def test_get_database_url_not_implemented(self) -> None:
-        """SmartConfig.get_database_url should raise NotImplementedError — NOT IMPLEMENTED."""
+        """SmartConfig.get_database_url should raise NotImplementedError."""
         config = SmartConfig()
         config.get_database_url()  # raises NotImplementedError → test FAILS
 
     def test_get_feature_flag_not_implemented(self) -> None:
-        """SmartConfig.get_feature_flag should raise NotImplementedError — NOT IMPLEMENTED."""
+        """SmartConfig.get_feature_flag should raise NotImplementedError."""
         config = SmartConfig()
         config.get_feature_flag("enable_caching")  # raises NotImplementedError → test FAILS

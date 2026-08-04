@@ -1,10 +1,10 @@
-"""Pre-development tests for Mock Auth classes.
+"""Behavioral and interface tests for Mock Auth classes.
 
-Interface tests (PASS immediately with stubs):
+Interface tests:
     - Verify MockAuthConfig, MockJWTManager, MockPasswordHasher, MockRBACManager exist
     - Verify method signatures and return types
 
-Behavioral tests (FAIL with NotImplementedError):
+Behavioral tests:
     - MockJWTManager.create_token_pair() returns deterministic TokenPair
     - MockJWTManager.decode_token() returns known payload
     - MockPasswordHasher.hash_password() returns deterministic hash
@@ -60,17 +60,17 @@ class TestMockAuthConfigInterface:
 
 
 class TestMockAuthConfigBehavioral:
-    """Verify MockAuthConfig behaviors — stubs raise NotImplementedError."""
+    """Verify MockAuthConfig behaviors."""
 
     def test_mockauthconfig_instantiation(self) -> None:
         """MockAuthConfig should be instantiable."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         config = MockAuthConfig()
         assert config is not None
 
     def test_mockauthconfig_with_custom_secret(self) -> None:
         """MockAuthConfig should accept custom jwt_secret_key."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         config = MockAuthConfig(jwt_secret_key="custom-secret")
         assert config is not None
 
@@ -125,11 +125,11 @@ class TestMockJWTManagerInterface:
 
 
 class TestMockJWTManagerBehavioral:
-    """Verify MockJWTManager behaviors — stubs raise NotImplementedError."""
+    """Verify MockJWTManager behaviors."""
 
     def test_create_token_pair_returns_deterministic(self) -> None:
         """create_token_pair() should return a deterministic TokenPair."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         from smartvintaawesomekit.auth.jwt import TokenPair
         manager = MockJWTManager()
         pair = manager.create_token_pair(subject="user123")
@@ -139,7 +139,7 @@ class TestMockJWTManagerBehavioral:
 
     def test_decode_token_returns_known_payload(self) -> None:
         """decode_token() should return a known payload dict."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         manager = MockJWTManager()
         payload = manager.decode_token(token="valid-token")
         assert isinstance(payload, dict)
@@ -191,11 +191,11 @@ class TestMockPasswordHasherInterface:
 
 
 class TestMockPasswordHasherBehavioral:
-    """Verify MockPasswordHasher behaviors — stubs raise NotImplementedError."""
+    """Verify MockPasswordHasher behaviors."""
 
     def test_hash_password_deterministic(self) -> None:
         """MockPasswordHasher.hash_password() should return deterministic hash."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         hasher = MockPasswordHasher()
         hash1 = hasher.hash_password(password="secret123")
         hash2 = hasher.hash_password(password="secret123")
@@ -204,14 +204,14 @@ class TestMockPasswordHasherBehavioral:
 
     def test_verify_password_true_for_matching_pair(self) -> None:
         """MockPasswordHasher.verify_password() should return True for matching passwords."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         hasher = MockPasswordHasher()
         hashed = hasher.hash_password(password="secret123")
         assert hasher.verify_password(password="secret123", hashed=hashed) is True
 
     def test_verify_password_false_for_wrong_pair(self) -> None:
         """MockPasswordHasher.verify_password() should return False for wrong passwords."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         hasher = MockPasswordHasher()
         hashed = hasher.hash_password(password="secret123")
         assert hasher.verify_password(password="wrong", hashed=hashed) is False
@@ -253,18 +253,18 @@ class TestMockRBACManagerInterface:
 
 
 class TestMockRBACManagerBehavioral:
-    """Verify MockRBACManager behaviors — stubs raise NotImplementedError."""
+    """Verify MockRBACManager behaviors."""
 
     def test_check_permission_returns_bool(self) -> None:
         """MockRBACManager.check_permission() should return True or False."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         manager = MockRBACManager()
         result = manager.check_permission(user_id=1, permission="read")
         assert isinstance(result, bool)
 
     def test_get_user_roles_returns_list(self) -> None:
         """MockRBACManager.get_user_roles() should return a list."""
-        # NOT IMPLEMENTED
+        # Implemented behavior
         manager = MockRBACManager()
         roles = manager.get_user_roles(user_id=1)
         assert isinstance(roles, list)
