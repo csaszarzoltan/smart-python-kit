@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.9.5 - 2026-08-04
+
+### Features
+- Added `sdk generate` for deterministic, dependency-free TypeScript fetch clients generated from the live FastAPI OpenAPI document.
+- Added `sdk check` for CI enforcement when the API contract and committed SDK lock diverge.
+- Added stable contract hashing, locked OpenAPI artifacts, path-parameter encoding, request bodies, API errors, and dry-run/JSON workflows.
+
+### Security
+- OpenAPI extraction runs in a bounded isolated subprocess and suppresses internal startup exceptions from CLI output.
+
+### Tests
+- Added TDD acceptance coverage for generation, deterministic lock metadata, freshness, stale-contract detection, read-only preview, and import failure redaction.
+
+### Docs
+- Documented the SDK generation and CI contract-check lifecycle and updated the feature manifest.
+
 ## v0.9.4 - 2026-08-04
 
 ### Features

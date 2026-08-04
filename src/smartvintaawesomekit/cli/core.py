@@ -19,6 +19,7 @@ import typer
 from smartvintaawesomekit import __version__
 from smartvintaawesomekit.readiness import check_application_import, check_database
 from smartvintaawesomekit.resource_cli import add_resource
+from smartvintaawesomekit.sdk import sdk_app
 
 app = typer.Typer(name="smartvintaawesomekit", help="Create and validate FastAPI projects.", no_args_is_help=True)
 NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
@@ -190,6 +191,7 @@ def doctor(
         raise typer.Exit(1)
 
 app.command("add-resource")(add_resource)
+app.add_typer(sdk_app, name="sdk")
 
 @app.command()
 def inspect(
