@@ -130,6 +130,7 @@ config = CacheConfig()
 cache = RedisCache.from_url(
     config.redis_url or "redis://localhost:6379/0",
     pool_size=config.redis_pool_size,
+    namespace="myapp:development",
 )
 
 # Same interface as MemoryCache

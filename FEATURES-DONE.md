@@ -7,6 +7,8 @@
 - generated SQLite integration flow: verifies create, list, read, partial update, delete, validation, and not-found behavior with real I/O
 - persisted refresh-token rotation: validates active database sessions, revokes used tokens, creates replacement sessions, and rejects reuse or expiry
 - evidence-based readiness gate: performs opt-in real SQLite connectivity and isolated ASGI import checks with stable codes, timings, redaction, and remediation
+- safe managed-file upgrade application: previews and stages current templates, blocks all drift or unmanaged-path conflicts, backs up the manifest, and refreshes managed baselines
+- Redis namespace safety: scopes every key, clears only the configured namespace through SCAN batches, and removes destructive flushdb behavior
 ## Sources
-- research-findings.md items addressed: P0 canonical green CLI foundation, P1 persistent add-resource, P1 complete migration lifecycle foundation, P1 integrated production auth/session composition, P2 expand doctor into readiness policy
-- CHANGELOG.md section this maps to: v0.9.2, v0.9.1, and v0.9.0 sections - 2026-08-04
+- research-findings.md items addressed: P0 canonical green CLI foundation, P1 persistent add-resource, P1 complete migration lifecycle foundation, P1 integrated production auth/session composition, P2 expand doctor into readiness policy, P2 safe three-way upgrade preview and safe apply foundation, P2 Redis namespace safety and readiness policy
+- CHANGELOG.md section this maps to: v0.9.4, v0.9.3, v0.9.2, v0.9.1, and v0.9.0 sections - 2026-08-04

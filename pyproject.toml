@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smartvintaawesomekit"
-version = "0.9.2"
+version = "0.9.4"
 description = "Smart Python developer toolkit — batteries-included project generator, config, database, and API utilities"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -73,9 +73,12 @@ select = ["E", "F", "I", "N", "W", "UP", "ANN", "B", "A", "C4", "SIM", "TCH"]
 "src/smartvintaawesomekit/testing/mocks/**" = ["ANN001", "ANN401"]
 "src/smartvintaawesomekit/cli/core.py" = ["E501"]
 "src/smartvintaawesomekit/resource_cli.py" = ["E501"]
+"src/smartvintaawesomekit/cache/redis.py" = ["ANN401", "E501"]
 "tests/test_v090_persistent_resources.py" = ["TC003"]
 "src/smartvintaawesomekit/readiness.py" = ["E501", "TC003"]
 "tests/test_v092_readiness.py" = ["E501", "TC003"]
+"tests/test_v093_upgrade_apply.py" = ["E501", "TC003"]
+"tests/test_v094_redis_namespace.py" = ["TC003"]
 
 [tool.ruff.format]
 quote-style = "double"

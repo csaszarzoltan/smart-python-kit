@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.9.4 - 2026-08-04
+
+### Features
+- Added mandatory Redis application/environment namespaces to every cache key operation.
+- Added cursor-based namespace clearing that deletes only matching keys in bounded batches.
+- Added namespace support to both direct construction and `RedisCache.from_url()`.
+
+### Security
+- Removed `flushdb()` from normal cache clearing so shared Redis databases cannot lose unrelated application data.
+- Reject empty, whitespace-padded, and wildcard namespaces before connecting or writing.
+
+### Tests
+- Added TDD coverage for namespaced get/set/exists/delete, isolated clearing, multi-batch scans, and invalid namespaces.
+
+### Docs
+- Updated Redis examples, safety guidance, and the machine-readable feature manifest.
+
+## v0.9.3 - 2026-08-04
+
+### Features
+- Added `upgrade-apply` with read-only preview and JSON output for safe current-template upgrades.
+- Added whole-project conflict classification for modified, missing, and unmanaged target paths.
+- Added staged managed-file replacement, pre-apply manifest backup, and refreshed checksums/baselines.
+
+### Safety
+- Upgrades refuse to write when any managed file has drifted or a template target collides with an unmanaged path.
+- Resource-generated and user-authored files outside the current template remain untouched.
+
+### Tests
+- Added TDD acceptance coverage for dry-run, successful application, manifest refresh, backup creation, conflicts, no-partial-write behavior, and unknown schemas.
+
+### Docs
+- Documented the plan-preview-apply workflow and updated the feature manifest.
+
 ## v0.9.2 - 2026-08-04
 
 ### Features

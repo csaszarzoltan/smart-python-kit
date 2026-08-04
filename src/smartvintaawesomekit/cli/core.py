@@ -344,6 +344,102 @@ def upgrade_plan(
         raise typer.Exit(1)
 
 
+@app.command("upgrade-apply")
+def upgrade_apply(
+    project: Annotated[Path, typer.Option("--project")] = Path("."),
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Safely apply current templates only when managed files have not drifted."""
+    project = project.resolve()
+    manifest_path = project / ".smartvinta.json"
+    if not manifest_path.is_file():
+        raise typer.BadParameter("No .smartvinta.json manifest found.")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema_version", 0) not in {0, 1}:
+        raise typer.BadParameter("Unsupported manifest schema version.")
+    managed = manifest.get("managed_files", {})
+    conflicts: list[str] = []
+    missing: list[str] = []
+    for relative, metadata in managed.items():
+        target = project / relative
+        expected = metadata.get("sha256") if isinstance(metadata, dict) else metadata
+        if not target.is_file():
+            missing.append(relative)
+        elif hashlib.sha256(target.read_bytes()).hexdigest() != expected:
+            conflicts.append(relative)
+    if conflicts or missing:
+        payload = {
+            "status": "conflicts",
+            "dry_run": dry_run,
+            "updated_files": [],
+            "conflicts": sorted(conflicts),
+            "missing_files": sorted(missing),
+        }
+        typer.echo(json.dumps(payload, indent=2) if json_output else "Upgrade blocked by managed-file drift.")
+        raise typer.Exit(1)
+
+    plan = ProjectPlan(
+        project.name,
+        project,
+        str(manifest.get("preset", "api")),
+        str(manifest.get("database", "sqlite")),
+    )
+    templates = _project_files(plan)
+    templates.pop(".smartvinta.json", None)
+    updated: dict[str, str] = {}
+    for relative, content in templates.items():
+        target = project / relative
+        if relative not in managed and target.exists():
+            conflicts.append(relative)
+        elif not target.exists() or target.read_text(encoding="utf-8") != content:
+            updated[relative] = content
+    if conflicts:
+        payload = {"status": "conflicts", "dry_run": dry_run, "updated_files": [],
+                   "conflicts": sorted(conflicts), "missing_files": []}
+        typer.echo(json.dumps(payload, indent=2) if json_output else "Upgrade blocked by unmanaged path conflicts.")
+        raise typer.Exit(1)
+
+    payload = {
+        "status": "preview" if dry_run else "applied",
+        "dry_run": dry_run,
+        "from_version": manifest.get("generator_version", "unknown"),
+        "to_version": __version__,
+        "updated_files": sorted(updated),
+        "conflicts": [],
+        "missing_files": [],
+    }
+    if dry_run:
+        typer.echo(json.dumps(payload, indent=2) if json_output else "Would update: " + ", ".join(sorted(updated)))
+        return
+
+    backup = project / ".smartvinta.json.upgrade.bak"
+    backup.write_bytes(manifest_path.read_bytes())
+    with tempfile.TemporaryDirectory(prefix="smartvinta-upgrade-") as temp:
+        stage = Path(temp)
+        for relative, content in updated.items():
+            staged = stage / relative
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            staged.write_text(content, encoding="utf-8")
+        for relative in sorted(updated):
+            target = project / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(stage / relative, target)
+    for relative in templates:
+        target = project / relative
+        if not target.is_file():
+            continue
+        data = target.read_bytes()
+        managed[relative] = {
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "baseline": base64.b64encode(data).decode("ascii"),
+        }
+    manifest["schema_version"] = 1
+    manifest["generator_version"] = __version__
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    typer.echo(json.dumps(payload, indent=2) if json_output else "Updated: " + ", ".join(sorted(updated)))
+
+
 @app.command("manifest-repair")
 def manifest_repair(
     project: Annotated[Path, typer.Option("--project")] = Path("."),

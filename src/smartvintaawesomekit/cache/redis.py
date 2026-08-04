@@ -25,9 +25,13 @@ class RedisCache(CacheBackend):
         cache = RedisCache(client)
     """
 
-    def __init__(self, redis_client: Any, pool_size: int = 10) -> None:
+    def __init__(self, redis_client: Any, pool_size: int = 10, namespace: str = "smartvinta") -> None:
+        """Initialize a namespaced Redis backend safe for shared databases."""
+        if not namespace or namespace != namespace.strip() or "*" in namespace:
+            raise ValueError("namespace must be non-empty, trimmed, and contain no wildcards")
         self._redis = redis_client
         self._pool_size = pool_size
+        self._namespace = namespace.rstrip(":")
         self._hits = 0
         self._misses = 0
 
@@ -39,9 +43,10 @@ class RedisCache(CacheBackend):
             self._hits = 0
             self._misses = 0
             self._fallback: dict[str, Any] = {}
+            self._namespace = "smartvinta"
 
     @classmethod
-    def from_url(cls, url: str, pool_size: int = 10) -> RedisCache:
+    def from_url(cls, url: str, pool_size: int = 10, namespace: str = "smartvinta") -> RedisCache:
         """Create a ``RedisCache`` from a Redis connection URL.
 
         Parameters
@@ -64,10 +69,15 @@ class RedisCache(CacheBackend):
             ) from exc
 
         client = Redis.from_url(url, max_connections=pool_size)
-        return cls(redis_client=client, pool_size=pool_size)
+        return cls(redis_client=client, pool_size=pool_size, namespace=namespace)
+
+    def _key(self, key: str) -> str:
+        """Return a key scoped to this application namespace."""
+        return f"{self._namespace}:{key}"
 
     async def get(self, key: str) -> Any | None:
         self._ensure_init()
+        key = self._key(key)
         if self._redis is None:
             value = self._fallback.get(key)
             if value is None:
@@ -86,6 +96,7 @@ class RedisCache(CacheBackend):
         self, key: str, value: Any, ttl: int | None = None
     ) -> None:
         self._ensure_init()
+        key = self._key(key)
         if self._redis is None:
             self._fallback[key] = value
             return
@@ -97,6 +108,7 @@ class RedisCache(CacheBackend):
 
     async def delete(self, key: str) -> bool:
         self._ensure_init()
+        key = self._key(key)
         if self._redis is None:
             return False
         result = await self._redis.delete(key)
@@ -104,6 +116,7 @@ class RedisCache(CacheBackend):
 
     async def exists(self, key: str) -> bool:
         self._ensure_init()
+        key = self._key(key)
         if self._redis is None:
             return False
         result = await self._redis.exists(key)
@@ -112,8 +125,16 @@ class RedisCache(CacheBackend):
     async def clear(self) -> None:
         self._ensure_init()
         if self._redis is None:
+            self._fallback.clear()
             return
-        await self._redis.flushdb()
+        cursor = 0
+        pattern = f"{self._namespace}:*"
+        while True:
+            cursor, keys = await self._redis.scan(cursor, match=pattern, count=500)
+            if keys:
+                await self._redis.delete(*keys)
+            if cursor == 0:
+                break
 
     async def get_stats(self) -> dict[str, Any]:
         self._ensure_init()
