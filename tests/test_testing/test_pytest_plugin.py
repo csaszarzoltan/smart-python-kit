@@ -13,6 +13,8 @@ Behavioral tests (FAIL with NotImplementedError):
 from __future__ import annotations
 
 import inspect
+import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -108,11 +110,12 @@ class TestPytestPluginBehavioral:
         import re
         import subprocess
         result = subprocess.run(
-            ["pytest", "--fixtures", "-p", "no:cacheprovider"],
+            [sys.executable, "-m", "pytest", "--fixtures", "-p", "no:cacheprovider"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=30,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         output = result.stdout + result.stderr
         # Valid fixture lines look like "    db_engine" (indented with spaces).

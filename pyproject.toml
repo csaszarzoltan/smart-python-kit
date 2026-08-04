@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smartvintaawesomekit"
-version = "0.9.9"
+version = "0.9.10"
 description = "Smart Python developer toolkit — batteries-included project generator, config, database, and API utilities"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -43,12 +43,14 @@ redis = ["redis==8.1.0"]
 dev = [
     "pytest==8.4.2",
     "pytest-asyncio==1.4.0",
+    "pytest-cov==6.2.1",
     "ruff==0.16.1",
     "mypy==2.3.0",
 ]
 test = [
     "pytest==8.4.2,<9",
     "pytest-asyncio==1.4.0,<3",
+    "pytest-cov==6.2.1",
     "httpx==0.28.1",
 ]
 

@@ -2,7 +2,7 @@
 
 SmartVintaAwesomeKit is a batteries-included Python toolkit for creating and extending FastAPI applications. It combines safe project scaffolding, validated configuration, async SQLAlchemy utilities, API helpers, authentication, caching, testing utilities, and deployment-ready project files.
 
-**Current version:** 0.9.9  
+**Current version:** 0.9.10  
 **Project status:** Alpha
 
 > The v0.5 release focuses on safer repeated developer workflows: previewable project generation, resource generation, migration scaffolding, request tracing, bounded pagination, and production-oriented diagnostics.
@@ -21,6 +21,10 @@ SmartVintaAwesomeKit is a batteries-included Python toolkit for creating and ext
 - Updated generated README, environment template, and scaffold manifest
 
 See the [v0.5 release report](docs/v0.5-release-report.md), [implementation report](docs/implementation-report.md), and [product and UX requirements](docs/product-ux-requirements-report.md) for the full analysis and rationale.
+
+## Capability status
+
+v0.9.10 ships a production-oriented **foundation**, not the entire research roadmap. See [`CAPABILITY-MATRIX.md`](CAPABILITY-MATRIX.md) for the authoritative shipped, partial, and roadmap scope. In particular, the `saas` preset is a scaffold and does not yet include complete registration/login/verification/reset/billing routes.
 
 ## Installation
 

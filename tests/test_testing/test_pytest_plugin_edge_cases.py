@@ -8,7 +8,9 @@ Extends the pre-existing tests with coverage for:
 
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -20,11 +22,12 @@ class TestPytestPluginFixturesEdgeCases:
     def test_db_engine_fixture_in_listing(self) -> None:
         """db_engine should appear in pytest --fixtures output."""
         result = subprocess.run(
-            [".venv/bin/pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
+            [sys.executable, "-m", "pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=30,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         output = result.stdout + result.stderr
         assert "db_engine" in output, "db_engine fixture not found in --fixtures output"
@@ -32,11 +35,12 @@ class TestPytestPluginFixturesEdgeCases:
     def test_db_session_fixture_in_listing(self) -> None:
         """db_session should appear in pytest --fixtures output."""
         result = subprocess.run(
-            [".venv/bin/pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
+            [sys.executable, "-m", "pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=30,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         output = result.stdout + result.stderr
         assert "db_session" in output, "db_session fixture not found in --fixtures output"
@@ -44,11 +48,12 @@ class TestPytestPluginFixturesEdgeCases:
     def test_async_client_fixture_in_listing(self) -> None:
         """async_client should appear in pytest --fixtures output."""
         result = subprocess.run(
-            [".venv/bin/pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
+            [sys.executable, "-m", "pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=30,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         output = result.stdout + result.stderr
         assert "async_client" in output, "async_client fixture not found in --fixtures output"
@@ -56,11 +61,12 @@ class TestPytestPluginFixturesEdgeCases:
     def test_all_three_fixtures_present(self) -> None:
         """All three core fixtures should appear in --fixtures output."""
         result = subprocess.run(
-            [".venv/bin/pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
+            [sys.executable, "-m", "pytest", "--fixtures", "-p", "no:cacheprovider", "-q"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=30,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         output = result.stdout + result.stderr
         for fname in ("db_engine", "db_session", "async_client"):
@@ -75,11 +81,12 @@ class TestPytestPluginMarkerRegistration:
     def test_asyncio_marker_registered(self) -> None:
         """The 'asyncio' marker should be registered by the plugin."""
         result = subprocess.run(
-            [".venv/bin/python", "-m", "pytest", "--markers", "-p", "no:cacheprovider"],
+            [sys.executable, "-m", "pytest", "--markers", "-p", "no:cacheprovider"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=30,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         output = result.stdout + result.stderr
         assert "asyncio" in output.lower(), "'asyncio' marker not found in --markers output"
@@ -87,11 +94,12 @@ class TestPytestPluginMarkerRegistration:
     def test_db_marker_registered(self) -> None:
         """The 'db' marker should be registered by the plugin."""
         result = subprocess.run(
-            [".venv/bin/python", "-m", "pytest", "--markers", "-p", "no:cacheprovider"],
+            [sys.executable, "-m", "pytest", "--markers", "-p", "no:cacheprovider"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=30,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         output = result.stdout + result.stderr
         assert "db:" in output, "'db' marker not found in --markers output"
@@ -105,12 +113,13 @@ class TestPytestPluginEntryPoint:
     def test_plugin_module_importable_via_pytest(self) -> None:
         """The plugin module should be importable when pytest loads it."""
         result = subprocess.run(
-            [".venv/bin/python", "-c",
+            [sys.executable, "-c",
              "from smartvintaawesomekit.testing.pytest_plugin import pytest_configure; print('OK')"],
             capture_output=True,
             text=True,
             cwd=str(self.ROOT),
             timeout=15,
+            env={**os.environ, "PYTHONPATH": str(self.ROOT / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
         assert result.returncode == 0, f"Import failed: {result.stderr}"
         assert "OK" in result.stdout

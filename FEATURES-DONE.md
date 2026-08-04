@@ -1,19 +1,30 @@
-## Features Done (this pass)
-- canonical CLI package: routes the installed entry point through one lifecycle CLI while preserving helper-module imports
-- persistent vertical-slice generator: creates SQLAlchemy model, Pydantic schemas, async service, full CRUD router, Alembic revision, and integration tests
-- resource validation: rejects duplicate, reserved, malformed, and unsupported fields before writing
-- managed resource lifecycle: records all generated files and router updates in the versioned scaffold manifest
-- operational migration command: safely previews or runs Alembic upgrade, downgrade, current, and history operations
-- generated SQLite integration flow: verifies create, list, read, partial update, delete, validation, and not-found behavior with real I/O
-- persisted refresh-token rotation: validates active database sessions, revokes used tokens, creates replacement sessions, and rejects reuse or expiry
-- evidence-based readiness gate: performs opt-in real SQLite connectivity and isolated ASGI import checks with stable codes, timings, redaction, and remediation
-- safe managed-file upgrade application: previews and stages current templates, blocks all drift or unmanaged-path conflicts, backs up the manifest, and refreshes managed baselines
-- Redis namespace safety: scopes every key, clears only the configured namespace through SCAN batches, and removes destructive flushdb behavior
-- OpenAPI TypeScript SDK lifecycle: deterministically generates a dependency-free fetch client and fails CI when the committed contract lock is stale
-- SDK-aware readiness gate: doctor can block deployment when the generated TypeScript client is missing, stale, or unverifiable
-- schema-aware TypeScript SDK: emits OpenAPI component interfaces, typed bodies and responses, deterministic output, and client-file tamper detection
-- schema-aware Python SDK: deterministically generates a dependency-free typed client with contract and client-file freshness checks
-- repository release gate: whole-repository lint, full regression, compilation, integrity, artifact exclusion, and archive verification are reproducibly recorded
+## Features Done (v0.9.10 fix pass)
+- clean-checkout pytest plugin subprocesses use the active Python interpreter and preserve the active import environment
+- canonical CLI implementation lives in `cli/core.py`; legacy `cli.py` is a compatibility shim; `python -m smartvintaawesomekit.cli` is supported
+- `pytest-cov` is declared in development and test extras
+- unexplained nested generated project artifact removed
+- capability claims separated into shipped, partial, and roadmap scope in `CAPABILITY-MATRIX.md`
+- independent QA findings retained with remediation status
+- full regression suite passes: 1,061 passed, 0 failed
+
+## Previously shipped and verified
+- persistent SQLite CRUD resource generation for primitive fields
+- Alembic upgrade/downgrade/current/history wrappers
+- persisted refresh-token rotation and reuse detection primitives
+- SQLite/app-import/SDK readiness checks
+- managed-file conflict-blocking upgrade apply
+- Redis namespace safety
+- deterministic schema-aware TypeScript and Python SDKs
+
+## Explicit non-claims
+- full SaaS auth route vertical slice is roadmap, not shipped
+- resource relationships, operation selection, and rich constraints are roadmap
+- complete migration drift/head policy is roadmap
+- full PostgreSQL/Redis/CVE/worker/email readiness is roadmap
+- P3 business and organization policy packs are roadmap
+
 ## Sources
-- research-findings.md items addressed: P0 canonical green CLI foundation, P1 persistent add-resource, P1 complete migration lifecycle foundation, P1 integrated production auth/session composition, P2 expand doctor into readiness policy, P2 safe three-way upgrade preview and safe apply foundation, P2 Redis namespace safety and readiness policy, P2 generated SDK lifecycle and stale-client detection, P2 SDK freshness in evidence-based readiness, P2 schema-aware generated client contracts, P2 Python SDK generation, P0 canonical green release foundation
-- CHANGELOG.md section this maps to: v0.9.9, v0.9.8, v0.9.7, v0.9.6, v0.9.5, v0.9.4, v0.9.3, v0.9.2, v0.9.1, and v0.9.0 sections - 2026-08-04
+- `research-findings.md` priority list
+- `CAPABILITY-MATRIX.md` authoritative scope
+- `review-findings.md` independent audit and remediation appendix
+- `CHANGELOG.md` v0.9.10 section
