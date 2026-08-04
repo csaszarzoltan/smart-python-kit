@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smartvintaawesomekit"
-version = "0.9.5"
+version = "0.9.9"
 description = "Smart Python developer toolkit — batteries-included project generator, config, database, and API utilities"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -69,6 +69,15 @@ target-version = "py311"
 select = ["E", "F", "I", "N", "W", "UP", "ANN", "B", "A", "C4", "SIM", "TCH"]
 
 [tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN001", "ANN201", "ANN202", "ANN401", "B008", "E501", "E702", "I001", "N814", "N817", "SIM102", "TC002"]
+"examples/**" = ["ANN001", "ANN201", "ANN202", "ANN401", "B008", "E501", "E702", "I001", "N814", "N817", "SIM102", "TC002"]
+"src/smartvintaawesomekit/cli.py" = ["ANN001", "ANN201", "ANN202", "ANN401", "B008", "E501", "E702", "I001", "N814", "N817", "SIM102", "TC002"]
+"src/smartvintaawesomekit/api.py" = ["ANN001", "ANN201", "ANN202", "ANN401", "B008", "E501", "E702", "I001", "N814", "N817", "SIM102", "TC002"]
+"src/smartvintaawesomekit/app.py" = ["ANN001", "ANN201", "ANN202", "ANN401", "B008", "E501", "E702", "I001", "N814", "N817", "SIM102", "TC002"]
+"src/smartvintaawesomekit/cache/base.py" = ["ANN401", "E501"]
+"src/smartvintaawesomekit/cache/memory.py" = ["ANN401", "E501"]
+"src/smartvintaawesomekit/cache/decorator.py" = ["ANN401", "E501"]
+"src/smartvintaawesomekit/cache/invalidation.py" = ["ANN401", "E501"]
 "src/smartvintaawesomekit/testing/**" = ["ANN001", "ANN401", "ANN201", "TC002", "TC003"]
 "src/smartvintaawesomekit/testing/mocks/**" = ["ANN001", "ANN401"]
 "src/smartvintaawesomekit/cli/core.py" = ["E501"]
@@ -81,6 +90,9 @@ select = ["E", "F", "I", "N", "W", "UP", "ANN", "B", "A", "C4", "SIM", "TCH"]
 "tests/test_v094_redis_namespace.py" = ["TC003"]
 "src/smartvintaawesomekit/sdk.py" = ["E501", "TC003"]
 "tests/test_v095_sdk.py" = ["E501", "TC003"]
+"tests/test_v096_doctor_sdk.py" = ["E501", "TC003"]
+"tests/test_v097_sdk_types.py" = ["E501", "TC003"]
+"tests/test_v098_python_sdk.py" = ["E501", "TC003"]
 
 [tool.ruff.format]
 quote-style = "double"

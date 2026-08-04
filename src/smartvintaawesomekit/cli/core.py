@@ -19,6 +19,7 @@ import typer
 from smartvintaawesomekit import __version__
 from smartvintaawesomekit.readiness import check_application_import, check_database
 from smartvintaawesomekit.resource_cli import add_resource
+from smartvintaawesomekit.sdk import freshness as sdk_freshness
 from smartvintaawesomekit.sdk import sdk_app
 
 app = typer.Typer(name="smartvintaawesomekit", help="Create and validate FastAPI projects.", no_args_is_help=True)
@@ -155,6 +156,7 @@ def doctor(
     environment: Annotated[str, typer.Option("--environment")] = "development",
     connectivity: Annotated[bool, typer.Option("--connectivity")] = False,
     startup: Annotated[bool, typer.Option("--startup")] = False,
+    sdk: Annotated[bool, typer.Option("--sdk")] = False,
 ) -> None:
     """Check project structure, security, connectivity, and startup readiness."""
     project = project.resolve()
@@ -177,6 +179,8 @@ def doctor(
         checks.append(check_database(project))
     if startup:
         checks.append(check_application_import(project))
+    if sdk:
+        checks.append(sdk_freshness(project))
     checks.extend([
         {"name": "optional-redis", "ok": importlib.util.find_spec("redis") is not None, "detail": "installed" if importlib.util.find_spec("redis") else "install smartvintaawesomekit[redis] when Redis is selected", "blocking": False},
         {"name": "optional-alembic", "ok": importlib.util.find_spec("alembic") is not None, "detail": "installed" if importlib.util.find_spec("alembic") else "install alembic to run migrations", "blocking": False},

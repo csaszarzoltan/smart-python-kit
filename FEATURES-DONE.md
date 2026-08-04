@@ -10,6 +10,10 @@
 - safe managed-file upgrade application: previews and stages current templates, blocks all drift or unmanaged-path conflicts, backs up the manifest, and refreshes managed baselines
 - Redis namespace safety: scopes every key, clears only the configured namespace through SCAN batches, and removes destructive flushdb behavior
 - OpenAPI TypeScript SDK lifecycle: deterministically generates a dependency-free fetch client and fails CI when the committed contract lock is stale
+- SDK-aware readiness gate: doctor can block deployment when the generated TypeScript client is missing, stale, or unverifiable
+- schema-aware TypeScript SDK: emits OpenAPI component interfaces, typed bodies and responses, deterministic output, and client-file tamper detection
+- schema-aware Python SDK: deterministically generates a dependency-free typed client with contract and client-file freshness checks
+- repository release gate: whole-repository lint, full regression, compilation, integrity, artifact exclusion, and archive verification are reproducibly recorded
 ## Sources
-- research-findings.md items addressed: P0 canonical green CLI foundation, P1 persistent add-resource, P1 complete migration lifecycle foundation, P1 integrated production auth/session composition, P2 expand doctor into readiness policy, P2 safe three-way upgrade preview and safe apply foundation, P2 Redis namespace safety and readiness policy, P2 generated SDK lifecycle and stale-client detection
-- CHANGELOG.md section this maps to: v0.9.5, v0.9.4, v0.9.3, v0.9.2, v0.9.1, and v0.9.0 sections - 2026-08-04
+- research-findings.md items addressed: P0 canonical green CLI foundation, P1 persistent add-resource, P1 complete migration lifecycle foundation, P1 integrated production auth/session composition, P2 expand doctor into readiness policy, P2 safe three-way upgrade preview and safe apply foundation, P2 Redis namespace safety and readiness policy, P2 generated SDK lifecycle and stale-client detection, P2 SDK freshness in evidence-based readiness, P2 schema-aware generated client contracts, P2 Python SDK generation, P0 canonical green release foundation
+- CHANGELOG.md section this maps to: v0.9.9, v0.9.8, v0.9.7, v0.9.6, v0.9.5, v0.9.4, v0.9.3, v0.9.2, v0.9.1, and v0.9.0 sections - 2026-08-04

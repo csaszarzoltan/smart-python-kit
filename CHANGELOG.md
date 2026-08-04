@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.9.9 - 2026-08-04
+
+### Release Hardening
+- Made the repository-wide `ruff check .` quality gate pass with zero errors.
+- Documented narrowly scoped compatibility exceptions for legacy test fixtures, the retained legacy CLI module, and intentionally dynamic public cache/API surfaces.
+- Added a reproducible release-verification record covering tests, lint, compilation, integrity, packaging exclusions, and archive validation.
+
+### Tests
+- Re-ran the complete regression suite after all research-driven feature work.
+
+### Docs
+- Added `RELEASE-VERIFICATION.md`, finalized the README release summary, and updated the machine-readable feature manifest.
+
+## v0.9.8 - 2026-08-04
+
+### Features
+- Added deterministic schema-aware Python SDK generation with `sdk generate --language python`.
+- Added standard-library HTTP transport, TypedDict component models, typed request bodies and responses, encoded path parameters, and structured API errors.
+- Added language-aware SDK freshness and client-file tamper detection through `sdk check --language python`.
+
+### Tests
+- Added TDD coverage for model generation, compilation, dependency-free transport, path encoding, tamper detection, deterministic output, and client hash locking.
+
+### Docs
+- Documented Python SDK generation and updated the machine-readable feature manifest.
+
+## v0.9.7 - 2026-08-04
+
+### Features
+- Upgraded TypeScript SDK generation from generic payloads to OpenAPI component interfaces and schema-aware request/response types.
+- Added support for required and optional properties, arrays, nullable unions, numeric/boolean/string primitives, and schema references.
+- Added deterministic generated-client SHA-256 locking and tamper detection in both `sdk check` and `doctor --sdk`.
+
+### Tests
+- Added TDD coverage for typed request bodies, typed responses, arrays, nullable optional fields, byte stability, and client hash locking.
+
+### Docs
+- Clarified the SDK type guarantees and updated the machine-readable feature manifest.
+
+## v0.9.6 - 2026-08-04
+
+### Features
+- Added opt-in `doctor --sdk` deployment readiness validation for generated TypeScript clients.
+- Added stable `sdk_fresh`, `sdk_stale`, `sdk_missing`, and `sdk_check_failed` diagnostic codes with blocking status and remediation.
+
+### Safety
+- SDK readiness failures reuse isolated OpenAPI extraction and never expose application exception details or tracebacks.
+
+### Tests
+- Added TDD acceptance coverage for fresh, stale, missing, and opt-in SDK readiness behavior.
+
+### Docs
+- Documented combined readiness and SDK contract enforcement and updated the machine-readable feature manifest.
+
 ## v0.9.5 - 2026-08-04
 
 ### Features
