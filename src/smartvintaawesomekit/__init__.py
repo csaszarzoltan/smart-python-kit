@@ -1,3 +1,3 @@
 """smartvintaawesomekit — Smart Python developer toolkit."""
 
-__version__ = "0.9.12"
+__version__ = "0.10.0"

@@ -1,6 +1,7 @@
 """Read-only, evidence-based generated-project readiness checks."""
 from __future__ import annotations
 
+import logging
 import os
 import sqlite3
 import subprocess
@@ -11,6 +12,21 @@ from typing import Any
 from urllib.parse import urlparse
 
 Check = dict[str, Any]
+
+logger = logging.getLogger("smartvintaawesomekit.readiness")
+
+
+def _log_check(result: Check) -> None:
+    """Emit a structured log record for one readiness check."""
+    logger.info(
+        "readiness check completed",
+        extra={
+            "check": result["name"],
+            "ok": result["ok"],
+            "code": result.get("code"),
+            "duration_ms": result.get("duration_ms"),
+        },
+    )
 
 
 def _environment(project: Path) -> dict[str, str]:
@@ -28,7 +44,7 @@ def _environment(project: Path) -> dict[str, str]:
     return values
 
 
-def check_database(project: Path) -> Check:
+def _check_database(project: Path) -> Check:
     """Perform a bounded, non-destructive database connectivity probe."""
     started = time.perf_counter()
     url = _environment(project).get("DATABASE_URL", "")
@@ -56,7 +72,18 @@ def check_database(project: Path) -> Check:
             "duration_ms": round((time.perf_counter() - started) * 1000, 2)}
 
 
-def check_application_import(project: Path) -> Check:
+def check_database(project: Path) -> Check:
+    """Perform a bounded, non-destructive database connectivity probe.
+
+    Emits a structured ``database-connectivity`` log record describing the
+    outcome. Returns the check result dict.
+    """
+    result = _check_database(project)
+    _log_check(result)
+    return result
+
+
+def _check_application_import(project: Path) -> Check:
     """Import the generated ASGI app in an isolated, time-bounded process."""
     started = time.perf_counter()
     command = [sys.executable, "-c", "from app.main import app; assert app is not None"]
@@ -76,6 +103,17 @@ def check_application_import(project: Path) -> Check:
             "detail": "ASGI application imported successfully" if ok else "ASGI application import failed",
             "remediation": "none" if ok else "Run the app locally and inspect its startup logs",
             "duration_ms": round((time.perf_counter() - started) * 1000, 2)}
+
+
+def check_application_import(project: Path) -> Check:
+    """Import the generated ASGI app in an isolated, time-bounded process.
+
+    Emits a structured ``application-import`` log record describing the
+    outcome. Returns the check result dict.
+    """
+    result = _check_application_import(project)
+    _log_check(result)
+    return result
 
 
 __all__ = ["check_application_import", "check_database"]
