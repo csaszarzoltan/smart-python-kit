@@ -20,11 +20,12 @@ import threading
 from collections import defaultdict
 from typing import Final
 
-#: Upper bounds (seconds, cumulative/Prometheus-style) of the latency
-#: histogram buckets. A sample of ``s`` seconds is counted in the first
-#: bucket whose bound is ``>= s``; the final ``inf`` bound is the catch-all
-#: for the slowest samples. ``counts[i]`` therefore holds the number of
-#: samples with latency at most ``buckets[i]`` seconds.
+#: Upper bounds (seconds) of the latency histogram buckets. A sample of ``s``
+#: seconds is counted in the first bucket whose bound is ``>= s``; the final
+#: ``inf`` bound is the catch-all for the slowest samples. Counts are
+#: per-bucket (non-cumulative): ``counts[i]`` is the number of samples in
+#: bucket ``i``, i.e. latency in ``(buckets[i-1], buckets[i]]`` seconds, with
+#: the first bucket holding ``s <= buckets[0]``.
 HISTOGRAM_BUCKETS: Final[tuple[float, ...]] = (
     0.001,
     0.005,
@@ -124,9 +125,11 @@ class MetricsRegistry:
         """Return a snapshot of per-route latency histogram bucket counts.
 
         Each value is a list of counts aligned with :meth:`histogram_buckets`:
-        ``counts[i]`` is the number of samples whose latency is at most
-        ``buckets[i]`` seconds. Per-route storage is fixed regardless of how
-        many samples were recorded.
+        ``counts[i]`` is the number of samples in bucket ``i``, i.e. latency
+        in ``(buckets[i-1], buckets[i]]`` seconds, with the first bucket
+        holding ``s <= buckets[0]``. Counts are per-bucket (non-cumulative).
+        Per-route storage is fixed regardless of how many samples were
+        recorded.
         """
         with self._lock:
             return {route: list(counts) for route, counts in self._latency.items()}

@@ -482,14 +482,27 @@ class TestMetricsRegistryBounded:
         assert sum(counts) == 10_000  # every sample counted
 
     def test_samples_land_in_correct_histogram_bucket(self) -> None:
+        """Samples land in exactly one bucket (per-bucket, non-cumulative).
+
+        Documented contract: ``counts[i]`` is the number of samples in bucket
+        ``i``, i.e. latency in ``(buckets[i-1], buckets[i]]`` seconds, with
+        the first bucket holding ``s <= buckets[0]``.
+        """
+        buckets = MetricsRegistry().histogram_buckets()
         registry = MetricsRegistry()
-        registry.record_latency("/r", 0.0)
-        registry.record_latency("/r", 0.2)
-        registry.record_latency("/r", 999.0)
+        registry.record_latency("/r", 0.0)        # below first bound -> bucket 0
+        registry.record_latency("/r", 0.05)       # exactly on the 0.05s bound -> its own bucket
+        registry.record_latency("/r", 0.050001)   # just above 0.05s -> (0.05, 0.1] bucket
+        registry.record_latency("/r", 999.0)      # past last finite bound -> inf catch-all
         counts = registry.latency_histograms()["/r"]
-        assert counts[0] == 1  # <= 1ms bucket
-        assert sum(counts) == 3
-        assert counts[-1] == 1  # catch-all (inf) bucket holds the 999s sample
+        assert counts[0] == 1                        # s <= buckets[0]
+        assert counts[buckets.index(0.05)] == 1      # right-inclusive bound placement
+        assert counts[buckets.index(0.05) + 1] == 1  # sample between 0.05 and 0.1
+        assert counts[-1] == 1                       # inf bucket holds the 999s sample
+        assert sum(counts) == 4                      # every sample counted exactly once
+        # Per-bucket, not cumulative: a cumulative histogram would be monotonic
+        # non-decreasing (counts[1] >= counts[0]).
+        assert counts[0] == 1 and counts[1] == 0
 
     def test_unique_route_flood_is_capped(self) -> None:
         registry = MetricsRegistry()
