@@ -2,10 +2,20 @@
 
 SmartVintaAwesomeKit is a batteries-included Python toolkit for creating and extending FastAPI applications. It combines safe project scaffolding, validated configuration, async SQLAlchemy utilities, API helpers, authentication, caching, testing utilities, and deployment-ready project files.
 
-**Current version:** 0.9.12  
+**Current version:** 0.10.0  
 **Project status:** Alpha
 
 > The v0.5 release focuses on safer repeated developer workflows: previewable project generation, resource generation, migration scaffolding, request tracing, bounded pagination, and production-oriented diagnostics.
+
+## Highlights in v0.10
+
+- **Observability module** — batteries-included structured JSON logging, request tracing with `X-Request-ID` / `trace_id` correlation, and per-route metrics (request count, latency histogram, error count) for FastAPI apps
+- One-line integration: `setup_logging()` + `install_observability(app)`
+- Optional OpenTelemetry/OTLP metrics export (SigNoz, Jaeger, Grafana) behind an opt-in `opentelemetry` extra — disabled by default, zero extra dependencies at import time
+- Generated projects (`smartvintaawesomekit init`) now include observability in `app/main.py` by default
+- Readiness checks emit structured logs and participate in per-route metrics
+
+See the [observability guide](docs/observability.md) for the quickstart, OTLP export example, and metrics reference.
 
 ## Highlights in v0.6
 
@@ -269,6 +279,38 @@ Generated projects include request-ID middleware. The middleware:
 
 This provides a foundation for structured logging and support diagnostics.
 
+For production-grade observability — structured JSON logs, `trace_id` correlation, and
+per-route metrics — use the [observability module](docs/observability.md) instead:
+
+```python
+from fastapi import FastAPI
+from smartvintaawesomekit.observability import install_observability, setup_logging
+
+setup_logging()                       # structured JSON logs
+app = FastAPI(title="my-service")
+app = install_observability(app)      # tracing + metrics middleware
+```
+
+Generated projects (`smartvintaawesomekit init`) already include this wiring in
+`app/main.py` by default.
+
+## Observability
+
+The v0.10 observability module gives FastAPI apps batteries-included telemetry with
+zero external services:
+
+- **Structured logging** — `setup_logging()` installs single-line JSON records on the
+  root logger (stdlib-only, zero-config fallback).
+- **Request tracing** — `RequestTracingMiddleware` accepts or generates `X-Request-ID`,
+  injects `trace_id` into every in-flight log record, and echoes the header back.
+- **Metrics** — `MetricsMiddleware` + `MetricsRegistry` track per-route request counts,
+  latency samples, and error counts, readable from your own `/metrics` endpoint.
+- **Optional OTLP export** — `configure_otlp_exporter()` ships metrics to SigNoz,
+  Jaeger, or Grafana behind an opt-in `opentelemetry` extra (disabled by default).
+
+See the [observability guide](docs/observability.md) for the full quickstart, OTLP
+export example, metrics reference, and request-id correlation explanation.
+
 ## Pagination
 
 The `paginate()` helper now validates inputs and applies SQL pagination:
@@ -295,6 +337,7 @@ Rules:
 - **Authentication:** JWT, password hashing, OAuth2 providers, RBAC, session tracking, and FastAPI dependencies
 - **Caching:** in-memory and optional Redis backends, decorators, invalidation, and statistics
 - **Testing:** async client and database fixtures, factories, mocks, and response assertions
+- **Observability:** structured JSON logging, request tracing with `trace_id` correlation, per-route metrics, and optional OTLP export
 - **CLI:** project generation, diagnostics, version output, and incremental resource generation
 
 ## Authentication
@@ -393,6 +436,7 @@ See [v0.6 test results](TEST_RESULTS_V0.6.md) and [v0.6 release report](docs/v0.
 
 ## Documentation
 
+- [Observability guide](docs/observability.md)
 - [Authentication guide](docs/auth.md)
 - [Caching guide](docs/caching.md)
 - [Product and UX requirements](docs/product-ux-requirements-report.md)

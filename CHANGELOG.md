@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.10.0 - 2026-08-05
+
+### Features
+- Added a batteries-included observability module (`src/smartvintaawesomekit/observability/`) for FastAPI apps: structured JSON logging, request tracing, and per-route metrics with zero external services.
+- Added `setup_logging()` — single-line JSON records on the root logger with a zero-config fallback (stdlib `logging` only, no extra dependencies).
+- Added `RequestTracingMiddleware` — accepts or generates `X-Request-ID`, injects `trace_id` into every in-flight log record, emits a structured `request completed` log, and echoes the header back.
+- Added `MetricsMiddleware` + `MetricsRegistry` — per-route request counts, latency samples (histogram), and error counts, readable from a `/metrics` endpoint.
+- Added `install_observability(app)` — one-line FastAPI integration that attaches tracing and metrics middleware and returns the app instance.
+- Added optional OpenTelemetry/OTLP metrics export via `configure_otlp_exporter()` behind an opt-in `opentelemetry` extra — disabled by default, no import-time dependency, and a no-op until the extra is installed.
+- Readiness checks (`readiness.check_database`, `check_application_import`) now emit structured log records; `/health` traffic participates in per-route metrics.
+- Generated projects (`smartvintaawesomekit init`, all presets) now include `setup_logging()` + `install_observability(app)` in `app/main.py` by default and pin `smartvintaawesomekit>=0.10.0`.
+- Version bumped to 0.10.0 (pyproject.toml + `__version__`).
+
+### Tests
+- Added 40 observability tests in `tests/test_observability.py` (interface + behavioral, including a real FastAPI TestClient integration path): trace-id propagation/correlation, JSON log output, per-route metrics counters/histogram/error counts, readiness logging, and OTLP opt-in/disabled-by-default behavior.
+- Full suite: 1,099 passed at HEAD with 0 regressions. One pre-existing failure remains: `test_v098_python_sdk.py` PEP 701 f-string on Python 3.11 — proven byte-identical baseline→HEAD, out of scope.
+- Ruff clean on `src/` and `tests/`.
+
+### Docs
+- Added `docs/observability.md` — quickstart (`setup_logging()` + `install_observability(app)`), OTLP export example (SigNoz/Jaeger/Grafana), metrics reference, and request-id correlation explanation.
+- Added a "Highlights in v0.10" section, an Observability feature section, and the observability module entry to the README; all code examples verified runnable via the repo `.venv`.
+
 ## v0.9.12 - 2026-08-04
 
 ### Continued QA Remediation
