@@ -3,13 +3,17 @@
 The ``opentelemetry`` extra is optional: this module must import cleanly when
 it is absent, so no opentelemetry import may happen at module load time. The
 SDK is imported lazily — only inside :func:`configure_otlp_exporter` when
-``enabled=True`` — and any failure is swallowed, because the module must keep
-working without the extra.
+``enabled=True`` — and any failure (missing extra, invalid endpoint URL, SDK
+errors) is logged and swallowed, because the module must keep working without
+the extra and must not crash application startup.
 """
 from __future__ import annotations
 
 import importlib
+import logging
 from dataclasses import dataclass
+
+logger = logging.getLogger("smartvintaawesomekit.observability.otlp")
 
 
 @dataclass
@@ -29,9 +33,10 @@ def _install_exporter(endpoint: str | None, service_name: str) -> None:
 
     Imports the opentelemetry SDK lazily and configures a
     :class:`PeriodicExportingMetricReader` backed by an OTLP HTTP exporter.
-    Any failure — most commonly the ``opentelemetry`` extra not being
-    installed — leaves the process untouched; the enabled flag still records
-    the opt-in intent.
+    Any failure — the ``opentelemetry`` extra not being installed, an invalid
+    endpoint URL, or an SDK error — is logged and swallowed, so the caller
+    (e.g. ``install_observability`` at startup) never crashes; the enabled
+    flag still records the opt-in intent.
     """
     try:
         sdk_metrics = importlib.import_module("opentelemetry.sdk.metrics")
@@ -41,13 +46,16 @@ def _install_exporter(endpoint: str | None, service_name: str) -> None:
         )
     except (ImportError, ModuleNotFoundError):
         return
-    reader_class = sdk_metrics.export.PeriodicExportingMetricReader
-    exporter_class = exporter_mod.OTLPMetricExporter
-    exporter = exporter_class(endpoint=endpoint) if endpoint else exporter_class()
-    reader = reader_class(exporter)
-    resource = resources.Resource.create({"service.name": service_name})
-    provider = sdk_metrics.MeterProvider(resource=resource, metric_readers=[reader])
-    sdk_metrics.set_meter_provider(provider)
+    try:
+        reader_class = sdk_metrics.export.PeriodicExportingMetricReader
+        exporter_class = exporter_mod.OTLPMetricExporter
+        exporter = exporter_class(endpoint=endpoint) if endpoint else exporter_class()
+        reader = reader_class(exporter)
+        resource = resources.Resource.create({"service.name": service_name})
+        provider = sdk_metrics.MeterProvider(resource=resource, metric_readers=[reader])
+        sdk_metrics.set_meter_provider(provider)
+    except Exception:
+        logger.exception("failed to configure OTLP exporter; export stays disabled")
 
 
 def configure_otlp_exporter(
@@ -58,9 +66,7 @@ def configure_otlp_exporter(
     """Enable or reconfigure the OTLP exporter.
 
     The opentelemetry SDK is imported lazily — only when ``enabled`` is True —
-    so the module imports cleanly without the optional extra. When the extra
-    is absent, ``enabled=True`` still records the opt-in intent and export
-    becomes a no-op until the extra is installed.
+    so the module imports cleanly without the optional extra.
 
     Args:
         endpoint: OTLP collector endpoint URL (default: SDK default).
@@ -68,7 +74,10 @@ def configure_otlp_exporter(
         enabled: Opt in (True) or out (False) of OTLP export.
 
     Returns:
-        True when the exporter is active.
+        True when OTLP export is opted in. The exporter only becomes active
+        once the ``opentelemetry`` extra is installed and construction
+        succeeds; until then the return value records opt-in intent and
+        export no-ops (construction failures are logged, never raised).
     """
     _STATE.endpoint = endpoint
     _STATE.service_name = service_name
@@ -81,5 +90,5 @@ def configure_otlp_exporter(
 
 
 def otlp_enabled() -> bool:
-    """Return whether OTLP export is currently enabled (default: False)."""
+    """Return whether OTLP export is opted in (default: False)."""
     return _STATE.enabled

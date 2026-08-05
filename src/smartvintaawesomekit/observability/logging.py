@@ -98,21 +98,37 @@ class JsonFormatter(logging.Formatter):
 def _install_handler(level: int, json_format: bool) -> None:
     """Attach a stream handler with the configured formatter to the root logger.
 
-    Idempotent: repeated calls do not stack duplicate handlers.
+    Idempotent: repeated calls with the same formatter kind do not stack
+    duplicate handlers. When the formatter kind changes (json -> text or
+    text -> json), the existing managed handler's formatter is swapped so the
+    new kind takes effect immediately.
     """
     root = logging.getLogger()
     root.setLevel(level)
-    if any(getattr(handler, "_smartvintaawesomekit_json", False) for handler in root.handlers):
-        return
+    kind = "json" if json_format else "text"
     formatter: logging.Formatter
     if json_format:
         formatter = JsonFormatter()
     else:
         formatter = logging.Formatter("%(levelname)s %(name)s: %(message)s")
+    managed = [
+        handler
+        for handler in root.handlers
+        if getattr(handler, "_smartvintaawesomekit_json", None) is not None
+    ]
+    if managed:
+        handler = managed[0]
+        if handler._smartvintaawesomekit_json != kind:  # type: ignore[attr-defined]
+            # Formatter kind changed: swap the formatter on the same handler
+            # instead of stacking a second one.
+            handler.setFormatter(formatter)
+            handler._smartvintaawesomekit_json = kind  # type: ignore[attr-defined]
+        return
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
-    # Marker attribute so setup_logging() stays idempotent across calls.
-    handler._smartvintaawesomekit_json = True  # type: ignore[attr-defined]
+    # Marker attribute holding the formatter kind, so setup_logging() stays
+    # idempotent across calls and can detect kind changes.
+    handler._smartvintaawesomekit_json = kind  # type: ignore[attr-defined]
     # Insert first so the JSON formatter is the one consumers find first
     # (e.g. test log captures that reuse ``root.handlers[0].formatter``).
     root.handlers.insert(0, handler)

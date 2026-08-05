@@ -22,7 +22,7 @@ from dataclasses import is_dataclass
 from typing import Any
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
 from smartvintaawesomekit.observability import (
@@ -154,6 +154,7 @@ class TestSignatures:
             "request_counts",
             "error_counts",
             "latency_histograms",
+            "histogram_buckets",
         ):
             assert callable(getattr(MetricsRegistry, name)), name
 
@@ -332,9 +333,11 @@ class TestMetricsMiddleware:
 
         client.get("/slow")
 
-        samples = registry.latency_histograms()["/slow"]
-        assert len(samples) >= 1
-        assert all(sample >= 0 for sample in samples)
+        buckets = registry.histogram_buckets()
+        counts = registry.latency_histograms()["/slow"]
+        assert len(counts) == len(buckets)
+        assert sum(counts) >= 1  # the sample landed in a bucket
+        assert all(count >= 0 for count in counts)
 
     def test_metrics_middleware_increments_error_counter_per_route(self) -> None:
         app = FastAPI()
@@ -409,3 +412,230 @@ class TestOtlpExport:
         assert configure_otlp_exporter(endpoint="http://localhost:4317", enabled=True) is True
         assert otlp_enabled() is True
         configure_otlp_exporter(enabled=False)  # reset for later tests
+
+
+# ---------------------------------------------------------------------------
+# Section 3 — regression tests for tech-lead review findings
+# (B1: request-id validation; B2: bounded metrics storage;
+#  M1: 5xx error counting; M2: logging formatter-kind switching; M3: OTLP guard)
+# ---------------------------------------------------------------------------
+
+
+class TestRequestIdValidation:
+    """B1: inbound X-Request-ID is validated; non-conforming values are regenerated."""
+
+    @staticmethod
+    def _client() -> TestClient:
+        app = FastAPI()
+
+        @app.get("/ping")
+        async def ping() -> dict[str, str]:
+            return {"pong": "ok"}
+
+        app.add_middleware(RequestTracingMiddleware)
+        return TestClient(app)
+
+    def test_request_tracing_regenerates_non_conforming_request_id(self) -> None:
+        client = self._client()
+        inbound = "bad value with spaces!!"
+        response = client.get("/ping", headers={"X-Request-ID": inbound})
+        assert response.status_code == 200
+        echoed = response.headers.get("X-Request-ID")
+        assert echoed is not None
+        assert echoed != inbound  # regenerated, not reflected
+
+    def test_request_tracing_regenerates_overlength_request_id(self) -> None:
+        client = self._client()
+        inbound = "x" * 100  # exceeds the 64-char limit
+        response = client.get("/ping", headers={"X-Request-ID": inbound})
+        echoed = response.headers.get("X-Request-ID")
+        assert echoed is not None
+        assert echoed != inbound
+        assert len(echoed) <= 64
+
+    def test_request_tracing_regenerates_crlf_request_id(self) -> None:
+        client = self._client()
+        inbound = "abc\r\nX-Evil: injected"
+        response = client.get("/ping", headers={"X-Request-ID": inbound})
+        echoed = response.headers.get("X-Request-ID")
+        assert echoed is not None
+        assert echoed != inbound
+        assert "\r" not in echoed and "\n" not in echoed
+        assert "X-Evil" not in echoed  # no raw echo of the CRLF payload
+
+    def test_request_tracing_accepts_max_length_conforming_request_id(self) -> None:
+        client = self._client()
+        inbound = "a" + ("-b" * 31)  # 1 + 62 = 63 chars, within the grammar
+        response = client.get("/ping", headers={"X-Request-ID": inbound})
+        assert response.headers.get("X-Request-ID") == inbound
+
+
+class TestMetricsRegistryBounded:
+    """B2: bounded storage — fixed histogram buckets + capped route keys."""
+
+    def test_many_samples_keep_bounded_storage(self) -> None:
+        registry = MetricsRegistry()
+        for _ in range(10_000):
+            registry.record_latency("/r", 0.05)
+        counts = registry.latency_histograms()["/r"]
+        assert len(counts) == len(registry.histogram_buckets())  # fixed size
+        assert sum(counts) == 10_000  # every sample counted
+
+    def test_samples_land_in_correct_histogram_bucket(self) -> None:
+        registry = MetricsRegistry()
+        registry.record_latency("/r", 0.0)
+        registry.record_latency("/r", 0.2)
+        registry.record_latency("/r", 999.0)
+        counts = registry.latency_histograms()["/r"]
+        assert counts[0] == 1  # <= 1ms bucket
+        assert sum(counts) == 3
+        assert counts[-1] == 1  # catch-all (inf) bucket holds the 999s sample
+
+    def test_unique_route_flood_is_capped(self) -> None:
+        registry = MetricsRegistry()
+        for i in range(10_000):
+            registry.increment_request_count(f"/unique-{i}")
+        counts = registry.request_counts()
+        assert len(counts) <= MetricsRegistry.MAX_ROUTES + 1
+        assert counts.get(MetricsRegistry.OTHER_ROUTE, 0) == 10_000 - MetricsRegistry.MAX_ROUTES
+
+    def test_middleware_maps_paths_to_route_templates(self) -> None:
+        app = FastAPI()
+
+        @app.get("/users/{user_id}")
+        async def get_user(user_id: str) -> dict[str, str]:
+            return {"id": user_id}
+
+        registry = MetricsRegistry()
+        app.add_middleware(MetricsMiddleware, registry=registry)
+        client = TestClient(app)
+
+        client.get("/users/1")
+        client.get("/users/2")
+
+        counts = registry.request_counts()
+        assert counts["/users/{user_id}"] == 2  # both requests share one template key
+        assert "/users/1" not in counts and "/users/2" not in counts
+
+    def test_middleware_unique_path_flood_is_bounded(self) -> None:
+        app = FastAPI()
+
+        @app.get("/known")
+        async def known() -> dict[str, str]:
+            return {"ok": "yes"}
+
+        registry = MetricsRegistry()
+        app.add_middleware(MetricsMiddleware, registry=registry)
+        client = TestClient(app)
+
+        for i in range(MetricsRegistry.MAX_ROUTES + 250):
+            client.get(f"/unknown-{i}")
+
+        counts = registry.request_counts()
+        assert len(counts) <= MetricsRegistry.MAX_ROUTES + 1
+
+
+class TestMetricsMiddleware5xx:
+    """M1: responses with status >= 500 are counted as errors."""
+
+    def test_metrics_middleware_counts_http_500_as_error(self) -> None:
+        app = FastAPI()
+
+        @app.get("/fail500")
+        async def fail500() -> dict[str, str]:
+            raise HTTPException(status_code=500, detail="boom")
+
+        registry = MetricsRegistry()
+        app.add_middleware(MetricsMiddleware, registry=registry)
+        client = TestClient(app)
+
+        response = client.get("/fail500")
+        assert response.status_code == 500
+        assert registry.error_counts()["/fail500"] == 1
+
+    def test_metrics_middleware_does_not_count_http_404_as_error(self) -> None:
+        app = FastAPI()
+
+        @app.get("/known")
+        async def known() -> dict[str, str]:
+            return {"ok": "yes"}
+
+        registry = MetricsRegistry()
+        app.add_middleware(MetricsMiddleware, registry=registry)
+        client = TestClient(app)
+
+        client.get("/missing")
+        assert registry.error_counts() == {}
+
+
+class TestLoggingFormatterKindSwitching:
+    """M2: setup_logging() swaps formatters when the json/text kind changes."""
+
+    @staticmethod
+    def _managed_handlers() -> list[logging.Handler]:
+        return [
+            handler
+            for handler in logging.getLogger().handlers
+            if getattr(handler, "_smartvintaawesomekit_json", None) is not None
+        ]
+
+    def test_setup_logging_switches_json_to_text_to_json(self) -> None:
+        from smartvintaawesomekit.observability.logging import JsonFormatter
+
+        setup_logging(LoggingConfig(json_format=True))
+        managed = self._managed_handlers()
+        assert len(managed) == 1
+        assert isinstance(managed[0].formatter, JsonFormatter)
+
+        setup_logging(LoggingConfig(json_format=False))
+        managed = self._managed_handlers()
+        assert len(managed) == 1  # no duplicate handler stacked
+        assert not isinstance(managed[0].formatter, JsonFormatter)
+
+        setup_logging(LoggingConfig(json_format=True))
+        managed = self._managed_handlers()
+        assert len(managed) == 1
+        assert isinstance(managed[0].formatter, JsonFormatter)
+
+    def test_setup_logging_same_kind_is_idempotent(self) -> None:
+        setup_logging(LoggingConfig(json_format=True))
+        managed = self._managed_handlers()
+        assert len(managed) == 1
+        setup_logging(LoggingConfig(json_format=True))
+        assert self._managed_handlers() == managed  # same handler, no stacking
+
+
+class TestOtlpConstructionGuard:
+    """M3: exporter construction failures are swallowed, never raised."""
+
+    def test_otlp_configure_swallows_construction_failure(self, monkeypatch: Any) -> None:
+        from smartvintaawesomekit.observability import otlp
+
+        class BoomExporter:
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                raise ValueError("bad endpoint")
+
+        class FakeMetrics:
+            class Export:
+                PeriodicExportingMetricReader = object
+
+            MeterProvider = object
+            set_meter_provider = staticmethod(lambda *args: None)
+
+        class FakeResources:
+            Resource = type("Resource", (), {"create": staticmethod(lambda *args: None)})
+
+        def fake_import_module(name: str, *args: Any, **kwargs: Any) -> Any:
+            if name == "opentelemetry.sdk.metrics":
+                return FakeMetrics
+            if name == "opentelemetry.sdk.resources":
+                return FakeResources
+            if name == "opentelemetry.exporter.otlp.proto.http.metric_exporter":
+                return type("FakeExporterMod", (), {"OTLPMetricExporter": BoomExporter})
+            raise ImportError(name)
+
+        monkeypatch.setattr(otlp.importlib, "import_module", fake_import_module)
+        # Must not raise, and must still record the opt-in intent.
+        assert otlp.configure_otlp_exporter(endpoint="http://invalid:1", enabled=True) is True
+        assert otlp.otlp_enabled() is True
+        otlp.configure_otlp_exporter(enabled=False)  # reset for later tests
