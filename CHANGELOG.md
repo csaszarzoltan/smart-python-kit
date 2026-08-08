@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.11.0 - 2026-08-08
+
+### Features
+- Added a security hardening module (`src/smartvintaawesomekit/security/`) with five ASGI middleware components for FastAPI apps: CORS hardening, token-bucket rate limiting, request size limits, input sanitization, and security headers.
+- Added `add_security_middleware(app, config)` — one-line FastAPI integration that attaches all five middleware in the correct order (rate limiting runs before auth) and returns the app instance.
+- Added `RateLimitMiddleware` — token-bucket rate limiting with per-client keys (authenticated user `sub` preferred, then `X-Forwarded-For`, then IP), per-route limit overrides (`{route: (requests, window)}` with prefix `*` matching), `429` + `Retry-After` on rejection, and 60-second time-based bucket cleanup.
+- Added `SecurityHeadersMiddleware` — adds `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Strict-Transport-Security` (composable max-age/includeSubDomains/preload), `Referrer-Policy`, and `Content-Security-Policy` to every response.
+- Added `CORSHardeningMiddleware` — origin allow-list validation, credentials handling, preflight with `Access-Control-Max-Age` and `Vary: Origin`, and production wildcard-origin rejection (`ValueError` at startup when `is_production` and `reject_wildcard_in_production`).
+- Added `RequestSizeMiddleware` — `Content-Length` check with `413` + `max_size_bytes` detail; chunked-encoding limitation documented (pair with a reverse proxy or `uvicorn --limit-max-request-body-size` for full coverage).
+- Added `InputSanitizationMiddleware` — strips null bytes from query params and request bodies, detects SQL injection and XSS patterns (case-insensitive regex compiled with `re.TIMEOUT` guard against ReDoS), rejects with `400`, and supports user-supplied extra patterns appended to the defaults.
+- Added `audit_security()` and `validate_security_config()` — structured security audit report and configuration compatibility validation (wildcard+credentials, wildcard in production, disabled rate limiting, per-route > global limits).
+- Added `smartvintaawesomekit security audit` CLI command with human and `--json` output; exit codes 0 = pass, 1 = warnings, 2 = critical; `--check` mode for CI. Reads `app/config.py` security/CORS settings when present.
+- `is_production` is wired automatically from `SmartConfig().environment` (or passed explicitly) into CORS hardening.
+- `SecurityMiddlewareConfig` is the primary config name; `SecurityConfig` remains as a backward-compatibility alias.
+- Rate limit and sanitization middleware accept an optional `metrics_registry` and record `_security_rate_limit:<route>` / `_security_input_validation:block` events into the observability metrics registry.
+
+### Tests
+- Added 129+ security tests in `tests/test_security.py`, `tests/test_security_postfix.py`, and `tests/test_security_audit.py` (interface, behavioral, CLI, metrics integration, and middleware-ordering coverage).
+- Full suite at HEAD: 1248 passed; 5 pre-existing by-design test-bug failures in the security suite (`asyncio.get_event_loop()` pattern) and 1 pre-existing SDK f-string regression remain documented and out of scope for this release.
+
+### Docs
+- Added `docs/security.md` — overview of all middleware components, `SecurityMiddlewareConfig` reference with defaults, `add_security_middleware` usage, token-bucket explanation with per-route limits, security header values, CORS production-vs-development behavior, request size limits and error format, input sanitization patterns and customization, `security audit` CLI usage and output format, and integration notes with auth and observability middleware.
+- Added `examples/security_example.py` — runnable FastAPI app with per-route rate limits, explicit CORS origins, body size limit, and custom sanitization patterns.
+- Added a "Highlights in v0.11" section, a Security hardening feature section, and the security module entry to the README.
+
 ## v0.10.0 - 2026-08-05
 
 ### Features

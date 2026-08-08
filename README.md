@@ -2,10 +2,19 @@
 
 SmartVintaAwesomeKit is a batteries-included Python toolkit for creating and extending FastAPI applications. It combines safe project scaffolding, validated configuration, async SQLAlchemy utilities, API helpers, authentication, caching, testing utilities, and deployment-ready project files.
 
-**Current version:** 0.10.0  
+**Current version:** 0.11.0  
 **Project status:** Alpha
 
 > The v0.5 release focuses on safer repeated developer workflows: previewable project generation, resource generation, migration scaffolding, request tracing, bounded pagination, and production-oriented diagnostics.
+
+## Highlights in v0.11
+
+- **Security hardening module** — one-line FastAPI hardening with token-bucket rate limiting (global and per-route), security headers (HSTS, CSP, X-Frame-Options, and more), CORS hardening with production wildcard rejection, request size limits (413 on oversized bodies), and input sanitization that strips null bytes and blocks SQL injection / XSS patterns
+- One-line integration: `add_security_middleware(app, config)` — attach all five middleware in the correct order (rate limiting runs before auth so brute-force is blocked early)
+- `smartvintaawesomekit security audit` CLI command with human and `--json` output; exit codes 0 = pass, 1 = warnings, 2 = critical
+- Environment-aware CORS validation: `is_production` is wired from `SmartConfig` automatically, or can be passed explicitly
+
+See the [security guide](docs/security.md) for configuration reference, per-route rate limits, header values, and integration notes with auth and observability middleware.
 
 ## Highlights in v0.10
 
@@ -311,6 +320,36 @@ zero external services:
 See the [observability guide](docs/observability.md) for the full quickstart, OTLP
 export example, metrics reference, and request-id correlation explanation.
 
+## Security hardening
+
+The v0.11 security module hardens a FastAPI app with five middleware components in
+one call:
+
+```python
+from fastapi import FastAPI
+from smartvintaawesomekit.security import SecurityMiddlewareConfig, add_security_middleware
+
+app = FastAPI(title="my-service")
+app = add_security_middleware(app)  # all five components, sensible defaults
+```
+
+`add_security_middleware(app, config)` attaches (in order): CORS hardening, rate
+limiting, request size limits, input sanitization, and security headers. Rate
+limiting runs before auth middleware, so brute-force on login endpoints is blocked
+early.
+
+Production mode is detected automatically from `SmartConfig` (or passed explicitly
+with `is_production=`), which enables CORS wildcard rejection. Run an audit of your
+current configuration with:
+
+```bash
+smartvintaawesomekit security audit --project . --environment production
+```
+
+See the [security guide](docs/security.md) for the full configuration reference,
+per-route rate limits, header values, and integration notes with the auth and
+observability modules.
+
 ## Pagination
 
 The `paginate()` helper now validates inputs and applies SQL pagination:
@@ -338,6 +377,7 @@ Rules:
 - **Caching:** in-memory and optional Redis backends, decorators, invalidation, and statistics
 - **Testing:** async client and database fixtures, factories, mocks, and response assertions
 - **Observability:** structured JSON logging, request tracing with `trace_id` correlation, per-route metrics, and optional OTLP export
+- **Security hardening:** token-bucket rate limiting, security headers (HSTS, CSP, X-Frame, etc.), CORS hardening, request size limits, input sanitization (SQLi/XSS detection), and `smartvintaawesomekit security audit` CLI
 - **CLI:** project generation, diagnostics, version output, and incremental resource generation
 
 ## Authentication
@@ -436,6 +476,7 @@ See [v0.6 test results](TEST_RESULTS_V0.6.md) and [v0.6 release report](docs/v0.
 
 ## Documentation
 
+- [Security guide](docs/security.md)
 - [Observability guide](docs/observability.md)
 - [Authentication guide](docs/auth.md)
 - [Caching guide](docs/caching.md)
