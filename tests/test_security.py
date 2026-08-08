@@ -360,7 +360,8 @@ class TestSecurityExports:
         from smartvintaawesomekit import security
 
         exports = security.__all__
-        assert "SecurityConfig" in exports
+        assert "SecurityMiddlewareConfig" in exports
+        assert "SecurityConfig" in exports  # backward compatibility
         assert "add_security_middleware" in exports
         assert "audit_security" in exports
         assert "validate_security_config" in exports
@@ -369,7 +370,7 @@ class TestSecurityExports:
         assert "CORSHardeningMiddleware" in exports
         assert "RequestSizeMiddleware" in exports
         assert "InputSanitizationMiddleware" in exports
-        assert len(exports) == 9
+        assert len(exports) == 10
 
 
 # ──────────────────────────────────────────────────────────────────

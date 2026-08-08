@@ -568,7 +568,7 @@ def audit(
                     sec = getattr(settings, "security", None)
                     if sec is not None:
                         from smartvintaawesomekit.security.config import (
-                            SecurityConfig as SecurityCfg,
+                            SecurityMiddlewareConfig as SecurityCfg,
                         )
 
                         security_cfg = SecurityCfg(

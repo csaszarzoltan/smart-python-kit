@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 
 @dataclass
-class SecurityConfig:
-    """Runtime configuration for the security module.
+class SecurityMiddlewareConfig:
+    """Runtime configuration for the security middleware module.
 
     Attributes:
         enable_rate_limiting: Enable token-bucket rate limiting (default: True).
@@ -103,3 +103,7 @@ class SecurityConfig:
             self.sql_injection_patterns = []
         if self.xss_patterns is None:
             self.xss_patterns = []
+
+
+# Backward compatibility alias - use SecurityMiddlewareConfig as primary name
+SecurityConfig = SecurityMiddlewareConfig

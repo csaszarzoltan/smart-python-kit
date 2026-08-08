@@ -7,7 +7,7 @@ Public API:
 - ``audit_security(config, environment)``: run a security audit and return
   a structured report.
 - ``validate_security_config(...)``: validate security settings compatibility.
-- ``SecurityConfig``: runtime configuration for the security module.
+- ``SecurityMiddlewareConfig``: runtime configuration for the security module.
 - ``RateLimitMiddleware``: token-bucket rate limiting with
   per-route/client limits.
 - ``SecurityHeadersMiddleware``: adds security headers (HSTS, CSP,
@@ -21,7 +21,10 @@ Public API:
 
 from __future__ import annotations
 
-from smartvintaawesomekit.security.config import SecurityConfig
+from smartvintaawesomekit.security.config import (
+    SecurityConfig,  # backward compatibility
+    SecurityMiddlewareConfig,
+)
 from smartvintaawesomekit.security.core import (
     add_security_middleware,
     audit_security,
@@ -36,7 +39,8 @@ from smartvintaawesomekit.security.middleware import (
 )
 
 __all__ = [
-    "SecurityConfig",
+    "SecurityMiddlewareConfig",
+    "SecurityConfig",  # backward compatibility
     "add_security_middleware",
     "audit_security",
     "validate_security_config",

@@ -13,7 +13,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from smartvintaawesomekit.security.config import SecurityConfig
+from fastapi import FastAPI  # noqa: TC002 — needed at runtime for get_type_hints()
+from starlette.applications import Starlette  # noqa: TC002 — needed at runtime for get_type_hints()
+
+from smartvintaawesomekit.config import SmartConfig
+from smartvintaawesomekit.security.config import SecurityMiddlewareConfig as SecurityConfig
 from smartvintaawesomekit.security.middleware import (
     CORSHardeningMiddleware,
     InputSanitizationMiddleware,
@@ -27,9 +31,11 @@ from smartvintaawesomekit.security.middleware import (
 # ──────────────────────────────────────────────────────────────────
 
 
-def add_security_middleware(  # noqa: ANN401
-    app: Any, config: SecurityConfig | None = None  # noqa: ANN401
-) -> Any:  # noqa: ANN401
+def add_security_middleware(
+    app: FastAPI | Starlette,
+    config: SecurityConfig | None = None,
+    is_production: bool | None = None,
+) -> FastAPI | Starlette:
     """Attach all security middleware to a FastAPI app in the correct order.
 
     Middleware order (outermost first, innermost last):
@@ -45,11 +51,20 @@ def add_security_middleware(  # noqa: ANN401
     Args:
         app: The FastAPI/Starlette application to instrument.
         config: Optional :class:`SecurityConfig`. Defaults to all features enabled.
+        is_production: Whether the application runs in production mode.
+            Passes through to CORSHardeningMiddleware to enable
+            production CORS validation (wildcard rejection).
+            If None, defaults to reading from SmartConfig's environment.
 
     Returns:
         The same ``app`` instance.
     """
     cfg = config or SecurityConfig()
+
+    # Determine is_production from SmartConfig if not explicitly provided
+    if is_production is None:
+        smart_config = SmartConfig()
+        is_production = smart_config.is_production()
 
     # Order matters: outermost middleware wraps the response, so apply in reverse
     # of the logical request flow. The last added is the innermost (closest to handler).
@@ -100,7 +115,7 @@ def add_security_middleware(  # noqa: ANN401
             allowed_headers=cfg.allowed_headers,
             allow_credentials=cfg.allow_credentials,
             reject_wildcard_in_production=cfg.reject_wildcard_in_production,
-            is_production=False,  # Will be set from Settings
+            is_production=is_production,
         )
 
     return app

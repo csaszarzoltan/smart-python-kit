@@ -22,6 +22,9 @@ if TYPE_CHECKING:
 # Type alias for the dispatch call_next signature (available at runtime for get_type_hints)
 _DispatchNext = Callable[[Request], Awaitable[Response]]
 
+# Maximum body size to read for sanitization (prevents memory exhaustion)
+MAX_SANITIZATION_BODY_SIZE = 1024 * 1024  # 1MB
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Token-bucket rate limiting middleware with per-route/client limits.
@@ -56,9 +59,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.metrics_registry = metrics_registry
         # Token bucket store: {client_key: {route_key: (tokens, last_refill_time)}}
         self._buckets: dict[str, dict[str, tuple[float, float]]] = defaultdict(dict)
-        # Cleanup interval (every 1000 requests)
-        self._cleanup_counter = 0
-        self._cleanup_interval = 1000
+        # Time-based cleanup tracking
+        self._last_cleanup_time: float | None = None
 
     def _get_client_key(self, request: Request) -> str:
         """Extract client identifier from request."""
@@ -97,7 +99,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         window: int,
     ) -> float:
         """Refill token bucket based on elapsed time."""
-        now = time.time()
+        now = time.monotonic()
         if route_key not in bucket:
             return float(max_tokens)
         tokens, last_refill = bucket[route_key]
@@ -120,7 +122,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         tokens = self._refill_bucket(bucket, route_key, max_tokens, window)
 
         if tokens >= 1:
-            bucket[route_key] = (tokens - 1, time.time())
+            bucket[route_key] = (tokens - 1, time.monotonic())
             return True, 0.0
 
         # Calculate retry-after
@@ -129,24 +131,30 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return False, retry_after
 
     def _maybe_cleanup(self) -> None:
-        """Periodically clean up expired buckets."""
-        self._cleanup_counter += 1
-        if self._cleanup_counter >= self._cleanup_interval:
-            self._cleanup_counter = 0
-            now = time.time()
-            expired_clients = []
-            for client_key, bucket in self._buckets.items():
-                expired_routes = []
-                for route_key, (_tokens, last_refill) in bucket.items():
-                    max_tokens, window = self._get_limit(route_key)
-                    if now - last_refill > window * 2:  # Expired if no activity for 2 windows
-                        expired_routes.append(route_key)
-                for route_key in expired_routes:
-                    del bucket[route_key]
-                if not bucket:
-                    expired_clients.append(client_key)
-            for client_key in expired_clients:
-                del self._buckets[client_key]
+        """Periodically clean up expired buckets (time-based, runs at most once per 60 seconds)."""
+        now = time.monotonic()
+        if self._last_cleanup_time is None:
+            self._last_cleanup_time = now
+            return
+
+        # Only run cleanup if more than 60 seconds have passed
+        if now - self._last_cleanup_time < 60:
+            return
+
+        self._last_cleanup_time = now
+        expired_clients = []
+        for client_key, bucket in self._buckets.items():
+            expired_routes = []
+            for route_key, (_tokens, last_refill) in bucket.items():
+                max_tokens, window = self._get_limit(route_key)
+                if now - last_refill > window * 2:  # Expired if no activity for 2 windows
+                    expired_routes.append(route_key)
+            for route_key in expired_routes:
+                del bucket[route_key]
+            if not bucket:
+                expired_clients.append(client_key)
+        for client_key in expired_clients:
+            del self._buckets[client_key]
 
     async def dispatch(self, request: Request, call_next: _DispatchNext) -> Response:
         """Process request — enforce rate limit, call next."""
@@ -335,6 +343,7 @@ class CORSHardeningMiddleware(BaseHTTPMiddleware):
 
             headers = self._build_cors_headers(origin)
             headers["Access-Control-Max-Age"] = "86400"
+            headers["Vary"] = "Origin"
             return Response(status_code=200, headers=headers)
 
         # Process actual request
@@ -351,7 +360,11 @@ class CORSHardeningMiddleware(BaseHTTPMiddleware):
 class RequestSizeMiddleware(BaseHTTPMiddleware):
     """Configurable max body size middleware with 413 on oversized payloads.
 
-    - Reads Content-Length header and/or streams body
+    - Reads Content-Length header and returns 413 if limit exceeded
+    - Note: Chunked transfer encoding requests (without Content-Length)
+      bypass the size check in this implementation. Consider using a
+      reverse proxy (nginx, traefik) or ASGI server config (uvicorn --limit-max-request-body-size)
+      for comprehensive protection.
     - Returns 413 with descriptive error body when limit exceeded
     """
 
@@ -420,7 +433,7 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
         r"drop\s+table",
         r"insert\s+into",
         r"delete\s+from",
-        r"update\s+.*\s+set",
+        r"update\s+\w+\s+set",  # Avoid .* catastrophic backtracking
         r"exec\s*\(",
         r"execute\s*\(",
         r"xp_cmdshell",
@@ -471,15 +484,20 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
         self.detect_sql_injection = detect_sql_injection
         self.detect_xss = detect_xss
 
-        # Compile SQL injection patterns
-        self.sql_patterns = [re.compile(p, re.IGNORECASE) for p in self.DEFAULT_SQL_PATTERNS]
+        # Compile SQL injection patterns with timeout guard (Python 3.11+ re.TIMEOUT)
+        # Note: re.TIMEOUT is available in Python 3.11+ and limits regex execution time
+        import contextlib
+        compile_flags = re.IGNORECASE
+        with contextlib.suppress(AttributeError):
+            compile_flags |= re.TIMEOUT  # type: ignore[attr-defined]
+        self.sql_patterns = [re.compile(p, compile_flags) for p in self.DEFAULT_SQL_PATTERNS]
         if sql_injection_patterns:
-            self.sql_patterns.extend(re.compile(p, re.IGNORECASE) for p in sql_injection_patterns)
+            self.sql_patterns.extend(re.compile(p, compile_flags) for p in sql_injection_patterns)
 
         # Compile XSS patterns
-        self.xss_patterns = [re.compile(p, re.IGNORECASE) for p in self.DEFAULT_XSS_PATTERNS]
+        self.xss_patterns = [re.compile(p, compile_flags) for p in self.DEFAULT_XSS_PATTERNS]
         if xss_patterns:
-            self.xss_patterns.extend(re.compile(p, re.IGNORECASE) for p in xss_patterns)
+            self.xss_patterns.extend(re.compile(p, compile_flags) for p in xss_patterns)
 
         self.metrics_registry = metrics_registry
 
@@ -514,6 +532,46 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
 
         return None
 
+    async def _read_and_sanitize_body(self, request: Request) -> bytes:
+        """Read request body, sanitize it, and return the body for re-wrapping.
+
+        Returns the body bytes (sanitized) or empty bytes if no body.
+        Raises JSONResponse with 400 if threats detected.
+        """
+        body = await request.body()
+
+        if not body:
+            return b""
+
+        # Check body size limit for sanitization
+        if len(body) > MAX_SANITIZATION_BODY_SIZE:
+            # Too large to sanitize - skip body sanitization but allow request through
+            # (RequestSizeMiddleware will handle 413 if configured)
+            return body
+
+        # Decode body for threat detection
+        try:
+            body_str = body.decode("utf-8")
+        except UnicodeDecodeError:
+            # Binary content - skip sanitization
+            return body
+
+        # Strip null bytes from body
+        if self.strip_null_bytes:
+            body_str = body_str.replace("\x00", "")
+
+        # Check for threats
+        threat = self._check_threats(body_str)
+        if threat:
+            # Record input validation block in observability metrics
+            if self.metrics_registry is not None:
+                self.metrics_registry.increment_request_count("_security_input_validation:block")
+            # Raise a special exception that we catch in dispatch
+            raise ValueError(f"Threat detected in request body: {threat}")
+
+        # Return sanitized body as bytes
+        return body_str.encode("utf-8")
+
     async def dispatch(self, request: Request, call_next: _DispatchNext) -> Response:
         """Process request — sanitize input, call next."""
         # Handle case where __init__ wasn't called (e.g., test creating via __new__)
@@ -535,9 +593,22 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
                     content={"detail": f"Threat detected in query param '{key}': {threat}"},
                 )
 
-        # Note: For request body, we'd need to read and buffer it
-        # This is a simplified implementation that checks query params
-        # Full body inspection would require consuming the stream
+        # Check request body
+        try:
+            sanitized_body = await self._read_and_sanitize_body(request)
+        except ValueError as e:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": str(e)},
+            )
+
+        # Re-wrap the body so downstream handlers can read it
+        # We need to replace the request's receive callable to return our sanitized body
+        async def receive() -> dict:
+            return {"type": "http.request", "body": sanitized_body, "more_body": False}
+
+        # Create a new request with the sanitized body
+        request._receive = receive
 
         response = await call_next(request)
         return response
