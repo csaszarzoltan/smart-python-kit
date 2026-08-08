@@ -17,7 +17,11 @@ sdk_app = typer.Typer(help="Generate and verify typed clients from a FastAPI con
 
 def _contract(project: Path) -> dict[str, Any]:
     """Load a project's OpenAPI document in an isolated subprocess."""
-    code = "import json; from app.main import app; print(json.dumps(app.openapi(), sort_keys=True))"
+    code = (
+        "import json; from app.main import app; "
+        "print(json.dumps(app.openapi(), "
+        "sort_keys=True))"
+    )
     environment = dict(os.environ)
     environment["PYTHONPATH"] = os.pathsep.join(
         filter(None, [str(project), os.environ.get("PYTHONPATH", "")])
@@ -189,7 +193,7 @@ def _python_client(contract: dict[str, Any], digest: str) -> str:
             response = _python_type(_operation_schema(operation, "response"))
             methods.append(
                 f"    def {name}(self, {', '.join(params)}) -> {response}:\n"
-                f"        return self._request('{method.upper()}', f'{expression}'{body_arg})  # type: ignore[return-value]"
+                f"        return self._request('{method.upper()}', f\"{expression}\"{body_arg})  # type: ignore[return-value]"
             )
     return f'''"""Generated SmartVintaAwesomeKit client. OpenAPI SHA-256: {digest}."""
 from __future__ import annotations
@@ -197,7 +201,7 @@ from __future__ import annotations
 import json
 from typing import TypedDict
 from urllib.error import HTTPError
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 {chr(10).join(models)}
@@ -212,6 +216,9 @@ class ApiError(RuntimeError):
 class ApiClient:
     """Small standard-library API client."""
     def __init__(self, base_url: str) -> None:
+        parsed = urlparse(base_url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("base_url must be an absolute http(s) URL")
         self.base_url = base_url.rstrip("/")
 
     def _request(self, method: str, path: str, body: object | None = None) -> object:

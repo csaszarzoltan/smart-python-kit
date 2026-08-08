@@ -6,7 +6,7 @@ signatures while behavioral tests fail cleanly with NotImplementedError.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from smartvintaawesomekit.security.config import SecurityConfig
@@ -20,7 +20,7 @@ class RateLimitMiddleware:
         app: Any,
         requests: int = 100,
         window_seconds: int = 60,
-        per_route: Optional[dict[str, tuple[int, int]]] = None,
+        per_route: dict[str, tuple[int, int]] | None = None,
     ) -> None:
         """Initialize the rate limit middleware.
 
@@ -86,9 +86,9 @@ class CORSHardeningMiddleware:
     def __init__(
         self,
         app: Any,
-        allowed_origins: Optional[list[str]] = None,
-        allowed_methods: Optional[list[str]] = None,
-        allowed_headers: Optional[list[str]] = None,
+        allowed_origins: list[str] | None = None,
+        allowed_methods: list[str] | None = None,
+        allowed_headers: list[str] | None = None,
         allow_credentials: bool = True,
         reject_wildcard_in_production: bool = True,
         is_production: bool = False,
@@ -161,8 +161,8 @@ class InputSanitizationMiddleware:
         strip_null_bytes: bool = True,
         detect_sql_injection: bool = True,
         detect_xss: bool = True,
-        sql_injection_patterns: Optional[list[str]] = None,
-        xss_patterns: Optional[list[str]] = None,
+        sql_injection_patterns: list[str] | None = None,
+        xss_patterns: list[str] | None = None,
     ) -> None:
         """Initialize the input sanitization middleware.
 

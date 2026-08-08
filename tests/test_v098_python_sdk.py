@@ -6,6 +6,7 @@ import json
 import py_compile
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from smartvintaawesomekit.cli import app
@@ -61,6 +62,23 @@ def test_python_sdk_check_detects_tampered_client(tmp_path: Path) -> None:
                                 "--language", "python", "--json"])
     assert stale.exit_code == 1
     assert json.loads(stale.stdout)["status"] == "stale"
+
+
+def test_python_sdk_client_validates_base_url(tmp_path: Path) -> None:
+    """Generated ApiClient rejects non-http(s) base URLs (SSRF hygiene)."""
+    project = _project(tmp_path)
+    assert runner.invoke(app, ["sdk", "generate", "--project", str(project),
+                               "--language", "python"]).exit_code == 0
+    client_path = project / "sdk/python/client.py"
+    assert "from urllib.parse import quote, urlparse" in client_path.read_text()
+    ns: dict = {}
+    exec(compile(client_path.read_text(), "client.py", "exec"), ns)
+    api_client = ns["ApiClient"]
+    with pytest.raises(ValueError):
+        api_client("file:///etc/passwd")
+    with pytest.raises(ValueError):
+        api_client("//no-scheme.example")
+    assert api_client("https://api.example.com").base_url == "https://api.example.com"
 
 
 def test_python_sdk_is_deterministic_and_records_client_hash(tmp_path: Path) -> None:
