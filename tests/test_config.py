@@ -186,6 +186,7 @@ class TestConfigInterface:
         assert "DatabaseConfig" in exports
         assert "APIConfig" in exports
         assert "CORSConfig" in exports
+        assert "SecurityConfig" in exports
 
 
 # ──────────────────────────────────────────────────────────────────

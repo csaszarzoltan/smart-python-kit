@@ -362,12 +362,14 @@ class TestSecurityExports:
         exports = security.__all__
         assert "SecurityConfig" in exports
         assert "add_security_middleware" in exports
+        assert "audit_security" in exports
+        assert "validate_security_config" in exports
         assert "RateLimitMiddleware" in exports
         assert "SecurityHeadersMiddleware" in exports
         assert "CORSHardeningMiddleware" in exports
         assert "RequestSizeMiddleware" in exports
         assert "InputSanitizationMiddleware" in exports
-        assert len(exports) == 7
+        assert len(exports) == 9
 
 
 # ──────────────────────────────────────────────────────────────────

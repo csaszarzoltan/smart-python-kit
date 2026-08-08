@@ -4,6 +4,9 @@ CORS hardening, request size limits, input sanitization.
 Public API:
 - ``add_security_middleware(app, config)``: one-line FastAPI integration
   for all security middleware.
+- ``audit_security(config, environment)``: run a security audit and return
+  a structured report.
+- ``validate_security_config(...)``: validate security settings compatibility.
 - ``SecurityConfig``: runtime configuration for the security module.
 - ``RateLimitMiddleware``: token-bucket rate limiting with
   per-route/client limits.
@@ -19,7 +22,11 @@ Public API:
 from __future__ import annotations
 
 from smartvintaawesomekit.security.config import SecurityConfig
-from smartvintaawesomekit.security.core import add_security_middleware
+from smartvintaawesomekit.security.core import (
+    add_security_middleware,
+    audit_security,
+    validate_security_config,
+)
 from smartvintaawesomekit.security.middleware import (
     CORSHardeningMiddleware,
     InputSanitizationMiddleware,
@@ -31,6 +38,8 @@ from smartvintaawesomekit.security.middleware import (
 __all__ = [
     "SecurityConfig",
     "add_security_middleware",
+    "audit_security",
+    "validate_security_config",
     "RateLimitMiddleware",
     "SecurityHeadersMiddleware",
     "CORSHardeningMiddleware",

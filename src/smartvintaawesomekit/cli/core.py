@@ -521,4 +521,125 @@ def version(json_output: Annotated[bool, typer.Option("--json")] = False) -> Non
     """Show toolkit version."""
     typer.echo(json.dumps({"name": "smartvintaawesomekit", "version": __version__}) if json_output else f"smartvintaawesomekit v{__version__}")
 
+
+# ──────────────────────────────────────────────────────────────────
+# Security audit command group
+# ──────────────────────────────────────────────────────────────────
+
+security_app = typer.Typer(help="Security hardening tools.", no_args_is_help=True)
+app.add_typer(security_app, name="security")
+
+
+@security_app.command()
+def audit(
+    project: Annotated[Path, typer.Option("--project", help="Project directory")] = Path("."),
+    environment: Annotated[str, typer.Option("--environment", help="Runtime environment")] = "development",
+    json_output: Annotated[bool, typer.Option("--json", help="Machine-readable output")] = False,
+    check: Annotated[bool, typer.Option("--check", help="Exit non-zero on failures")] = False,
+) -> None:
+    """Run a security audit: check middleware config, headers, CORS, and rate limiting.
+
+    Exit codes: 0 = all pass, 1 = warnings, 2 = critical issues.
+    """
+    from smartvintaawesomekit.security.core import audit_security, validate_security_config
+
+    project = project.resolve()
+
+    # Load security config from project settings if available
+    security_cfg = None
+    cors_origins: list[str] | None = None
+    cors_methods: list[str] | None = None
+    cors_headers: list[str] | None = None
+    is_production = environment.lower() == "production"
+
+    # Try to load from project settings module
+    settings_path = project / "app" / "config.py"
+    if settings_path.is_file():
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location("app.config", str(settings_path))
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)  # type: ignore[union-attr]
+                settings = getattr(mod, "settings", None)
+                if settings is not None:
+                    # Extract security-related settings
+                    sec = getattr(settings, "security", None)
+                    if sec is not None:
+                        from smartvintaawesomekit.security.config import (
+                            SecurityConfig as SecurityCfg,
+                        )
+
+                        security_cfg = SecurityCfg(
+                            enable_rate_limiting=getattr(sec, "enable_rate_limiting", True),
+                            rate_limit_requests=getattr(sec, "rate_limit_requests", 100),
+                            rate_limit_window_seconds=getattr(sec, "rate_limit_window_seconds", 60),
+                            enable_cors_hardening=getattr(sec, "enable_cors_hardening", True),
+                            enable_security_headers=getattr(sec, "enable_security_headers", True),
+                            enable_request_size_limit=getattr(sec, "enable_request_size_limit", True),
+                            enable_input_sanitization=getattr(sec, "enable_input_sanitization", True),
+                            reject_wildcard_in_production=getattr(sec, "reject_wildcard_in_production", True),
+                        )
+                    env = getattr(settings, "environment", environment)
+                    if env:
+                        environment = env
+                    is_production = environment.lower() == "production"
+                    # Extract CORS settings
+                    cors_cfg = getattr(settings, "cors", None)
+                    if cors_cfg is not None:
+                        cors_origins = getattr(cors_cfg, "origins", None)
+                        cors_methods = getattr(cors_cfg, "methods", None)
+                        cors_headers = getattr(cors_cfg, "headers", None)
+        except Exception:
+            pass  # Fall through to defaults
+
+    # Run audit
+    report = audit_security(
+        config=security_cfg,
+        environment=environment,
+        cors_origins=cors_origins,
+        cors_methods=cors_methods,
+        cors_headers=cors_headers,
+    )
+
+    # Run config validation
+    issues = validate_security_config(
+        config=security_cfg,
+        cors_origins=cors_origins,
+        cors_methods=cors_methods,
+        cors_headers=cors_headers,
+        is_production=is_production,
+    )
+
+    # Merge validation issues into report
+    for issue in issues:
+        report["checks"].append({
+            "check": "Config validation",
+            "status": issue["message"],
+            "severity": issue["severity"],
+        })
+        if issue["severity"] == "critical":
+            report["critical"] += 1
+            report["exit_code"] = max(report["exit_code"], 2)
+        elif issue["severity"] == "warning":
+            report["warnings"] += 1
+            report["exit_code"] = max(report["exit_code"], 1)
+
+    report["total_checks"] = len(report["checks"])
+
+    if json_output:
+        typer.echo(json.dumps(report, indent=2))
+    else:
+        typer.echo(f"Security Audit — {report['status'].upper()}")
+        typer.echo(f"Environment: {report['environment']}")
+        typer.echo(f"Checks: {report['total_checks']} (warnings={report['warnings']}, critical={report['critical']})")
+        typer.echo("")
+        for item in report["checks"]:
+            icon = "✓" if item["severity"] == "info" else ("⚠" if item["severity"] == "warning" else "✗")
+            typer.echo(f"  {icon} {item['check']}: {item['status']}")
+
+    if check and report["exit_code"] != 0:
+        raise typer.Exit(report["exit_code"])
+
 __all__ = ["ProjectPlan", "app"]

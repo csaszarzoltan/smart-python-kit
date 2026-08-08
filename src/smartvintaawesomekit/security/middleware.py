@@ -10,7 +10,7 @@ import re
 import time
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -38,6 +38,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         requests: int = 100,
         window_seconds: int = 60,
         per_route: dict[str, tuple[int, int]] | None = None,
+        metrics_registry: Any | None = None,  # noqa: ANN401
     ) -> None:
         """Initialize the rate limit middleware.
 
@@ -46,11 +47,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             requests: Max requests per window (default: 100).
             window_seconds: Time window in seconds (default: 60).
             per_route: Dict of route path -> (requests, window) for per-route limits.
+            metrics_registry: Optional MetricsRegistry for recording rate limit events.
         """
         super().__init__(app)
         self.requests = requests
         self.window_seconds = window_seconds
         self.per_route = per_route or {}
+        self.metrics_registry = metrics_registry
         # Token bucket store: {client_key: {route_key: (tokens, last_refill_time)}}
         self._buckets: dict[str, dict[str, tuple[float, float]]] = defaultdict(dict)
         # Cleanup interval (every 1000 requests)
@@ -164,6 +167,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         allowed, retry_after = self._consume_token(client_key, route_key, max_tokens, window)
 
         if not allowed:
+            # Record rate limit hit in observability metrics
+            if self.metrics_registry is not None:
+                self.metrics_registry.increment_request_count(f"_security_rate_limit:{route_key}")
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Rate limit exceeded", "retry_after": int(retry_after) + 1},
@@ -447,6 +453,7 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
         detect_xss: bool = True,
         sql_injection_patterns: list[str] | None = None,
         xss_patterns: list[str] | None = None,
+        metrics_registry: Any | None = None,  # noqa: ANN401
     ) -> None:
         """Initialize the input sanitization middleware.
 
@@ -457,6 +464,7 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
             detect_xss: Detect XSS patterns (default: True).
             sql_injection_patterns: Additional SQL injection regex patterns.
             xss_patterns: Additional XSS regex patterns.
+            metrics_registry: Optional MetricsRegistry for recording validation blocks.
         """
         super().__init__(app)
         self.strip_null_bytes = strip_null_bytes
@@ -472,6 +480,8 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
         self.xss_patterns = [re.compile(p, re.IGNORECASE) for p in self.DEFAULT_XSS_PATTERNS]
         if xss_patterns:
             self.xss_patterns.extend(re.compile(p, re.IGNORECASE) for p in xss_patterns)
+
+        self.metrics_registry = metrics_registry
 
     def _strip_null_bytes(self, value: str) -> str:
         """Strip null bytes from a string."""
@@ -517,6 +527,9 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
             sanitized = self._sanitize_value(value)
             threat = self._check_threats(sanitized)
             if threat:
+                # Record input validation block in observability metrics
+                if self.metrics_registry is not None:
+                    self.metrics_registry.increment_request_count("_security_input_validation:block")
                 return JSONResponse(
                     status_code=400,
                     content={"detail": f"Threat detected in query param '{key}': {threat}"},

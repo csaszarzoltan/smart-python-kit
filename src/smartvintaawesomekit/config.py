@@ -53,10 +53,33 @@ class CORSConfig(BaseSettings):
     model_config = {"env_prefix": "CORS_"}
 
 
+class SecurityConfig(BaseSettings):
+    """Security middleware configuration sub-model.
+
+    Maps to the security module's SecurityConfig dataclass. Provides
+    environment-variable loading for rate limiting and CORS settings.
+    """
+
+    enable_rate_limiting: bool = Field(default=True, description="Enable rate limiting")
+    rate_limit_requests: int = Field(default=100, description="Max requests per window")
+    rate_limit_window_seconds: int = Field(default=60, description="Rate limit window in seconds")
+    enable_cors_hardening: bool = Field(default=True, description="Enable CORS hardening")
+    enable_security_headers: bool = Field(default=True, description="Enable security headers")
+    enable_request_size_limit: bool = Field(default=True, description="Enable request size limits")
+    enable_input_sanitization: bool = Field(
+        default=True, description="Enable input sanitization",
+    )
+    reject_wildcard_in_production: bool = Field(
+        default=True, description="Reject wildcard CORS in production",
+    )
+
+    model_config = {"env_prefix": "SECURITY_"}
+
+
 class SmartConfig(BaseSettings):
     """Top-level configuration with sensible defaults for micro-SaaS patterns.
 
-    Combines database, API, CORS, and application-level settings.
+    Combines database, API, CORS, security, and application-level settings.
     Loads from environment variables and .env files with type validation.
     """
 
@@ -69,6 +92,7 @@ class SmartConfig(BaseSettings):
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     api: APIConfig = Field(default_factory=APIConfig)
     cors: CORSConfig = Field(default_factory=CORSConfig)
+    security: SecurityConfig = Field(default_factory=SecurityConfig)
 
     feature_flags: dict[str, bool] = Field(
         default_factory=lambda: {
@@ -122,4 +146,5 @@ __all__ = [
     "DatabaseConfig",
     "APIConfig",
     "CORSConfig",
+    "SecurityConfig",
 ]
